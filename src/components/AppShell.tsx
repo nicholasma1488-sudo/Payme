@@ -122,9 +122,12 @@ export function AppShell({
                 </option>
               ))}
             </select>
-            <button onClick={logout} className="text-[11px] text-muted hover:text-ink">
-              @{user.username}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[11px] text-ink">@{user.username}</span>
+              <button onClick={logout} className="text-[11px] text-muted hover:text-gold">
+                退出
+              </button>
+            </div>
           </div>
         </div>
         <RateTicker />
@@ -132,8 +135,12 @@ export function AppShell({
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-4">{children}</main>
 
-      <nav className="grid grid-cols-4 border-t border-line bg-[#100e0b] md:hidden">
-        {NAV.map((item) => (
+      <nav
+        className={`grid border-t border-line bg-[#100e0b] md:hidden ${
+          items.length > 4 ? "grid-cols-5" : "grid-cols-4"
+        }`}
+      >
+        {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}

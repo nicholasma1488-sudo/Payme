@@ -65,6 +65,20 @@ export type ChatMessage = {
   senderUsername?: string;
 };
 
+export type ExchangeRequest = {
+  id: string;
+  userId: string;
+  conversationId: string | null;
+  side: "buy" | "sell";
+  amount: number;
+  currency: string;
+  status: "pending" | "filled" | "rejected";
+  note: string | null;
+  createdAt: number;
+  filledAt: number | null;
+  username?: string;
+};
+
 export type RatesSnapshot = {
   base: "USD";
   updatedAt: number;

@@ -3,7 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Flash } from "@/components/Flash";
-import type { ChatMessage, Conversation } from "@/lib/types";
+import { SUPPORTED_FIAT } from "@/lib/money";
+import type { ChatMessage, Conversation, ExchangeRequest } from "@/lib/types";
 
 export function ChatClient() {
   const params = useSearchParams();
@@ -15,6 +16,13 @@ export function ChatClient() {
   const [draft, setDraft] = useState("");
   const [addName, setAddName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [exSide, setExSide] = useState<"buy" | "sell">("buy");
+  const [exAmount, setExAmount] = useState("200");
+  const [exCurrency, setExCurrency] = useState("CNY");
+  const [requests, setRequests] = useState<ExchangeRequest[]>([]);
+  const [role, setRole] = useState<string>("user");
 
   async function refreshConvos() {
     const res = await fetch("/api/chat/conversations");
@@ -25,7 +33,10 @@ export function ChatClient() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => setMe(d.user?.id || null));
+      .then((d) => {
+        setMe(d.user?.id || null);
+        setRole(d.user?.role || "user");
+      });
     refreshConvos();
   }, []);
 
@@ -38,7 +49,16 @@ export function ChatClient() {
       if (alive && res.ok) setMessages(data.messages || []);
     };
     load();
-    const id = setInterval(load, 2500);
+    const loadReq = async () => {
+      const res = await fetch(`/api/exchange/request?conversationId=${selected}&status=pending`);
+      const data = await res.json();
+      if (alive && res.ok) setRequests(data.requests || []);
+    };
+    loadReq();
+    const id = setInterval(() => {
+      load();
+      loadReq();
+    }, 2500);
     return () => {
       alive = false;
       clearInterval(id);
@@ -98,6 +118,78 @@ export function ChatClient() {
     refreshConvos();
   }
 
+  async function payFriend(e: FormEvent) {
+    e.preventDefault();
+    if (!current?.otherUsername) return;
+    setError(null);
+    const res = await fetch("/api/pay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: current.otherUsername,
+        amount: Number(payAmount),
+        note: payNote,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "付款失败");
+      return;
+    }
+    if (selected) {
+      await fetch(`/api/chat/conversations/${selected}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: `已付给你 ${payAmount} Ᵽ${payNote ? ` · ${payNote}` : ""}` }),
+      });
+    }
+    setPayAmount("");
+    setPayNote("");
+    if (selected) {
+      const msgs = await fetch(`/api/chat/conversations/${selected}/messages`).then((r) => r.json());
+      if (msgs.messages) setMessages(msgs.messages);
+    }
+    refreshConvos();
+    router.refresh();
+  }
+
+  async function requestExchange(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const res = await fetch("/api/exchange/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        side: exSide,
+        amount: Number(exAmount),
+        currency: exCurrency,
+        conversationId: selected || undefined,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "申请失败");
+      return;
+    }
+    if (data.conversationId) router.push(`/chat?c=${data.conversationId}`);
+    refreshConvos();
+  }
+
+  async function resolveRequest(id: string, action: "fill" | "reject") {
+    setError(null);
+    const res = await fetch("/api/exchange/request", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "处理失败");
+      return;
+    }
+    setRequests((prev) => prev.filter((r) => r.id !== id));
+  }
+
   return (
     <div className="grid min-h-[70vh] overflow-hidden rounded-[28px] border border-line bg-paper lg:grid-cols-[280px_1fr]">
       <aside className="border-b border-line lg:border-b-0 lg:border-r">
@@ -141,9 +233,86 @@ export function ChatClient() {
           <p className="text-xs text-muted">
             {current?.type === "support"
               ? "这里直达管理员，可以谈兑换或任何问题。"
-              : "用用户名把朋友加进来。"}
+              : "用用户名把朋友加进来，也可以直接付钱。"}
           </p>
         </div>
+        {current?.type === "dm" && current.otherUsername && (
+          <form onSubmit={payFriend} className="grid gap-2 border-b border-line px-5 py-3 sm:grid-cols-[1fr_1fr_auto]">
+            <input
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              placeholder="付给 TA 的 Ᵽ"
+              inputMode="decimal"
+              className="rounded-xl border border-line bg-bg px-3 py-2 font-mono text-sm outline-none"
+            />
+            <input
+              value={payNote}
+              onChange={(e) => setPayNote(e.target.value)}
+              placeholder="备注"
+              className="rounded-xl border border-line bg-bg px-3 py-2 text-sm outline-none"
+            />
+            <button className="rounded-xl bg-gold px-3 text-xs text-[#1a1208]">付给 @{current.otherUsername}</button>
+          </form>
+        )}
+        {current?.type === "support" && role !== "admin" && (
+          <form
+            onSubmit={requestExchange}
+            className="grid gap-2 border-b border-line px-5 py-3 sm:grid-cols-[auto_1fr_120px_auto]"
+          >
+            <select
+              value={exSide}
+              onChange={(e) => setExSide(e.target.value as "buy" | "sell")}
+              className="rounded-xl border border-line bg-bg px-3 py-2 text-sm"
+            >
+              <option value="buy">买入 Ᵽ</option>
+              <option value="sell">兑出 Ᵽ</option>
+            </select>
+            <input
+              value={exAmount}
+              onChange={(e) => setExAmount(e.target.value)}
+              placeholder={exSide === "buy" ? "法币金额" : "Pay Me 数量"}
+              className="rounded-xl border border-line bg-bg px-3 py-2 font-mono text-sm outline-none"
+            />
+            <select
+              value={exCurrency}
+              onChange={(e) => setExCurrency(e.target.value)}
+              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm"
+            >
+              {SUPPORTED_FIAT.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <button className="rounded-xl border border-gold/40 px-3 text-xs text-gold">请客服兑钱</button>
+          </form>
+        )}
+        {role === "admin" && requests.length > 0 && (
+          <div className="space-y-2 border-b border-line px-5 py-3">
+            {requests.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span>
+                  @{r.username} {r.side === "buy" ? "买入" : "兑出"} {r.amount}{" "}
+                  {r.side === "buy" ? r.currency : "Ᵽ"}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => resolveRequest(r.id, "fill")}
+                    className="rounded-lg bg-gold px-2 py-1 text-xs text-[#1a1208]"
+                  >
+                    入账
+                  </button>
+                  <button
+                    onClick={() => resolveRequest(r.id, "reject")}
+                    className="rounded-lg border border-line px-2 py-1 text-xs text-muted"
+                  >
+                    拒绝
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {messages.map((m) => {
             const mine = m.senderId === me;

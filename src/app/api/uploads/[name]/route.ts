@@ -23,7 +23,9 @@ export async function GET(
         ? "image/webp"
         : ext === ".gif"
           ? "image/gif"
-          : "image/jpeg";
+          : ext === ".svg"
+            ? "image/svg+xml"
+            : "image/jpeg";
   const buf = fs.readFileSync(file);
   return new NextResponse(new Uint8Array(buf), {
     headers: {

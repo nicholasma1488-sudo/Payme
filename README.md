@@ -28,11 +28,11 @@ npm run dev
 
 底部输入框，或 `Ctrl/Cmd + K` 聚焦。
 
-- `/pay 20 luna 午饭` — 付给用户名
+- `/pay 20 to luna 午饭` — 付给用户名（也支持 `/pay 20 luna`）
 - `/exchange 200 CNY` — 用人民币买入 Pay Me
 - `/exchange 15 PAYME USD` — 把 Pay Me 兑成美元
-- `/chat luna` — 按用户名打开私聊
-- `/support` — 连接管理员客服
+- `/chat luna` 或 `/add kai` — 按用户名加朋友并打开私聊
+- `/support` — 连接管理员客服，可在聊天里申请兑钱
 - `/sell` — 去拍卖上架
 
 ## 经济设计（70 人）

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireUser } from "@/lib/auth";
 import { parseCommand } from "@/lib/commands";
 import {
+  addContact,
   findUserByUsername,
   getOrCreateDm,
   getOrCreateSupport,
@@ -34,15 +35,18 @@ export async function POST(req: NextRequest) {
         href: `/chat?c=${conversationId}`,
       });
     }
-    if (parsed.type === "chat") {
+    if (parsed.type === "chat" || parsed.type === "add") {
       const other = findUserByUsername(parsed.username);
       if (!other) throw new Error(`找不到 @${parsed.username}`);
+      addContact(user.id, other.id);
+      addContact(other.id, user.id);
       const conversationId = getOrCreateDm(user.id, other.id);
       return NextResponse.json({
         ok: true,
         parsed,
         action: "navigate",
         href: `/chat?c=${conversationId}`,
+        message: parsed.type === "add" ? `已添加 @${other.username}` : `打开与 @${other.username} 的对话`,
       });
     }
     if (parsed.type === "pay") {

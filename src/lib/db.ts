@@ -3,8 +3,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
-import { PLANNED_TREASURY } from "./money";
-import type { ChatMessage, Conversation, Listing, Transaction, User } from "./types";
+import { CIRCLE_SIZE, PER_PERSON_FLOAT, PLANNED_TREASURY, TREASURY_BUFFER } from "./money";
+import type { ChatMessage, Conversation, ExchangeRequest, Listing, Transaction, User } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "payme.db");
@@ -25,7 +25,31 @@ export function getDb(): Database.Database {
   db.pragma("foreign_keys = ON");
   migrate(db);
   seed(db);
+  ensureDefaults(db);
+  ensureListingPhotos(db);
   return db;
+}
+
+function ensureDefaults(database: Database.Database) {
+  const ignore = database.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
+  ignore.run("cny_per_payme", "10");
+  ignore.run("cny_reserve", String(PLANNED_TREASURY * 10));
+  ignore.run("planned_people", String(CIRCLE_SIZE));
+  ignore.run("per_person_float", String(PER_PERSON_FLOAT));
+
+  const users = database
+    .prepare("SELECT id FROM users WHERE username IS NOT NULL AND role != 'admin'")
+    .all() as { id: string }[];
+  const add = database.prepare(
+    "INSERT OR IGNORE INTO contacts (user_id, contact_id, created_at) VALUES (?, ?, ?)",
+  );
+  const now = Date.now();
+  for (const a of users) {
+    for (const b of users) {
+      if (a.id === b.id) continue;
+      add.run(a.id, b.id, now);
+    }
+  }
 }
 
 function migrate(database: Database.Database) {
@@ -108,7 +132,60 @@ function migrate(database: Database.Database) {
       created_at INTEGER NOT NULL,
       PRIMARY KEY (user_id, contact_id)
     );
+
+    CREATE TABLE IF NOT EXISTS exchange_requests (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      conversation_id TEXT,
+      side TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      note TEXT,
+      created_at INTEGER NOT NULL,
+      filled_at INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
   `);
+}
+
+function writeListingImage(filename: string, title: string, accent: string) {
+  const dir = uploadsDir();
+  const safe = title.replace(/[<>&]/g, "");
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a2118"/>
+      <stop offset="100%" stop-color="#16120e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#g)"/>
+  <circle cx="980" cy="160" r="220" fill="${accent}" opacity="0.22"/>
+  <circle cx="180" cy="720" r="140" fill="#e0b56a" opacity="0.08"/>
+  <text x="80" y="760" fill="#e0b56a" font-family="Georgia, serif" font-size="64">${safe}</text>
+  <text x="80" y="820" fill="#b5a48a" font-family="sans-serif" font-size="28">Pay Me 拍卖</text>
+</svg>`;
+  fs.writeFileSync(path.join(dir, filename), svg);
+}
+
+function ensureListingPhotos(database: Database.Database) {
+  const rows = database
+    .prepare("SELECT id, title, image_paths FROM listings")
+    .all() as { id: string; title: string; image_paths: string }[];
+  for (const row of rows) {
+    let paths: string[] = [];
+    try {
+      paths = JSON.parse(row.image_paths || "[]");
+    } catch {
+      paths = [];
+    }
+    if (paths.length) continue;
+    const name = `seed-${row.id.slice(0, 8)}.svg`;
+    const accent = row.title.includes("相机") ? "#c4784a" : "#8fbf9f";
+    writeListingImage(name, row.title, accent);
+    database.prepare("UPDATE listings SET image_paths = ? WHERE id = ?").run(JSON.stringify([name]), row.id);
+  }
 }
 
 function seed(database: Database.Database) {
@@ -180,6 +257,12 @@ function seed(database: Database.Database) {
   database
     .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
     .run("cny_reserve", String(PLANNED_TREASURY * 10));
+  database
+    .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
+    .run("planned_people", String(CIRCLE_SIZE));
+  database
+    .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
+    .run("per_person_float", String(PER_PERSON_FLOAT));
 
   const listing = database.prepare(`
     INSERT INTO listings (id, seller_id, title, description, price_payme, image_paths, status, buyer_id, created_at)
@@ -203,6 +286,16 @@ function seed(database: Database.Database) {
     JSON.stringify([]),
     now,
   );
+  listing.run(
+    crypto.randomUUID(),
+    novaId,
+    "二手机械键盘",
+    "青轴，键帽还在。当面看货，Pay Me 直接付。",
+    54,
+    JSON.stringify([]),
+    now,
+  );
+  ensureListingPhotos(database);
 
   const tx = database.prepare(`
     INSERT INTO transactions (id, from_user_id, to_user_id, amount_payme, type, note, fiat_amount, fiat_currency, created_at)
@@ -725,10 +818,21 @@ export function sendMessage(conversationId: string, senderId: string, body: stri
   };
 }
 
+export function plannedTreasuryNeed() {
+  const people = Number(getSetting("planned_people", String(CIRCLE_SIZE))) || CIRCLE_SIZE;
+  const float = Number(getSetting("per_person_float", String(PER_PERSON_FLOAT))) || PER_PERSON_FLOAT;
+  return {
+    plannedPeople: people,
+    perPersonFloat: float,
+    plannedTreasury: Math.round(people * float * (1 + TREASURY_BUFFER)),
+  };
+}
+
 export function treasuryStats() {
   const admin = getAdmin();
   const users = listUsers().filter((u) => u.role !== "admin");
   const circulating = users.reduce((sum, u) => sum + u.balancePayme, 0);
+  const plan = plannedTreasuryNeed();
   return {
     admin,
     userCount: users.length,
@@ -736,8 +840,122 @@ export function treasuryStats() {
     treasuryPayme: admin.balancePayme,
     cnyReserve: Number(getSetting("cny_reserve", "0")),
     cnyPerPayme: Number(getSetting("cny_per_payme", "10")),
-    plannedTreasury: PLANNED_TREASURY,
-    plannedPeople: 70,
-    perPersonFloat: 1000,
+    plannedTreasury: plan.plannedTreasury,
+    plannedPeople: plan.plannedPeople,
+    perPersonFloat: plan.perPersonFloat,
   };
+}
+
+export function adminPayout(params: {
+  username: string;
+  amount: number;
+  direction: "credit" | "debit";
+  note?: string;
+  fiatAmount?: number;
+  fiatCurrency?: string;
+}): Transaction {
+  const admin = getAdmin();
+  const other = findUserByUsername(params.username);
+  if (!other) throw new Error(`找不到 @${params.username}`);
+  if (other.id === admin.id) throw new Error("不能给金库自己调账");
+  if (params.amount <= 0) throw new Error("金额必须大于 0");
+
+  const fromUserId = params.direction === "credit" ? admin.id : other.id;
+  const toUserId = params.direction === "credit" ? other.id : admin.id;
+  const tx = transferPayme({
+    fromUserId,
+    toUserId,
+    amount: params.amount,
+    type: "adjust",
+    note: params.note || (params.direction === "credit" ? "客服入账" : "客服兑出"),
+    fiatAmount: params.fiatAmount,
+    fiatCurrency: params.fiatCurrency,
+  });
+  if (params.fiatAmount && params.fiatCurrency?.toUpperCase() === "CNY") {
+    adjustCnyReserve(params.direction === "credit" ? params.fiatAmount : -params.fiatAmount);
+  }
+  return tx;
+}
+
+function mapExchangeRequest(row: Record<string, unknown>): ExchangeRequest {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    conversationId: (row.conversation_id as string | null) ?? null,
+    side: row.side === "sell" ? "sell" : "buy",
+    amount: Number(row.amount),
+    currency: String(row.currency),
+    status: row.status === "filled" ? "filled" : row.status === "rejected" ? "rejected" : "pending",
+    note: (row.note as string | null) ?? null,
+    createdAt: Number(row.created_at),
+    filledAt: row.filled_at == null ? null : Number(row.filled_at),
+    username: (row.username as string | null) ?? undefined,
+  };
+}
+
+export function createExchangeRequest(params: {
+  userId: string;
+  conversationId?: string;
+  side: "buy" | "sell";
+  amount: number;
+  currency: string;
+  note?: string;
+}): ExchangeRequest {
+  const id = crypto.randomUUID();
+  const createdAt = Date.now();
+  getDb()
+    .prepare(
+      `INSERT INTO exchange_requests
+       (id, user_id, conversation_id, side, amount, currency, status, note, created_at, filled_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, NULL)`,
+    )
+    .run(
+      id,
+      params.userId,
+      params.conversationId ?? null,
+      params.side,
+      params.amount,
+      params.currency.toUpperCase(),
+      params.note ?? null,
+      createdAt,
+    );
+  return getExchangeRequest(id)!;
+}
+
+export function getExchangeRequest(id: string): ExchangeRequest | null {
+  const row = getDb()
+    .prepare(
+      `SELECT r.*, u.username FROM exchange_requests r
+       JOIN users u ON u.id = r.user_id WHERE r.id = ?`,
+    )
+    .get(id) as Record<string, unknown> | undefined;
+  return row ? mapExchangeRequest(row) : null;
+}
+
+export function listExchangeRequests(filter?: {
+  status?: ExchangeRequest["status"];
+  conversationId?: string;
+}): ExchangeRequest[] {
+  let sql = `SELECT r.*, u.username FROM exchange_requests r
+             JOIN users u ON u.id = r.user_id`;
+  const args: string[] = [];
+  const where: string[] = [];
+  if (filter?.status) {
+    where.push("r.status = ?");
+    args.push(filter.status);
+  }
+  if (filter?.conversationId) {
+    where.push("r.conversation_id = ?");
+    args.push(filter.conversationId);
+  }
+  if (where.length) sql += ` WHERE ${where.join(" AND ")}`;
+  sql += " ORDER BY r.created_at DESC";
+  const rows = getDb().prepare(sql).all(...args) as Record<string, unknown>[];
+  return rows.map(mapExchangeRequest);
+}
+
+export function setExchangeRequestStatus(id: string, status: "filled" | "rejected") {
+  getDb()
+    .prepare("UPDATE exchange_requests SET status = ?, filled_at = ? WHERE id = ?")
+    .run(status, Date.now(), id);
 }

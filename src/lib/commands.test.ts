@@ -27,4 +27,29 @@ describe("parseCommand", () => {
     assert.deepEqual(parseCommand("/chat @kai"), { type: "chat", username: "kai" });
     assert.deepEqual(parseCommand("support"), { type: "support" });
   });
+
+  it("parses pay 20 to username", () => {
+    assert.deepEqual(parseCommand("pay 20 to luna lunch"), {
+      type: "pay",
+      amount: 20,
+      username: "luna",
+      note: "lunch",
+    });
+    assert.deepEqual(parseCommand("20 to @kai"), {
+      type: "pay",
+      amount: 20,
+      username: "kai",
+      note: "",
+    });
+    assert.deepEqual(parseCommand("/pay luna 15 电影"), {
+      type: "pay",
+      amount: 15,
+      username: "luna",
+      note: "电影",
+    });
+  });
+
+  it("parses add friend", () => {
+    assert.deepEqual(parseCommand("/add nova"), { type: "add", username: "nova" });
+  });
 });

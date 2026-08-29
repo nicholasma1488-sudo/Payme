@@ -26,7 +26,7 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
   useEffect(() => {
     const parsed = parseCommand(value || "/");
     if (!value.trim()) {
-      setHint("命令：/pay 金额 用户名 · /exchange 200 CNY · /chat 用户名 · /support");
+      setHint("命令：/pay 20 to luna · /exchange 200 CNY · /add 用户名 · /support");
       return;
     }
     if (parsed.type === "unknown") setHint(parsed.hint);
@@ -37,7 +37,8 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
           ? `用 ${parsed.amount} ${parsed.currency} 买入 Pay Me`
           : `卖出 ${parsed.amount} Ᵽ 换成 ${parsed.currency}`,
       );
-    } else if (parsed.type === "chat") setHint(`打开与 @${parsed.username} 的对话`);
+    }     else if (parsed.type === "chat") setHint(`打开与 @${parsed.username} 的对话`);
+    else if (parsed.type === "add") setHint(`添加 @${parsed.username} 并打开聊天`);
     else if (parsed.type === "support") setHint("连接管理员客服");
     else if (parsed.type === "sell") setHint("去拍卖上架");
     else setHint("回车执行");
