@@ -99,13 +99,13 @@ export function AdminClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.22em] text-copper">管理员金库</p>
-        <h1 className="mt-2 font-display text-4xl">70 人圈子的钱</h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          按每人日常 {treasury.perPersonFloat} Ᵽ、外加 15% 缓冲计算，{treasury.plannedPeople}{" "}
-          人需要 {treasury.plannedTreasury.toLocaleString("zh-CN")} Ᵽ 的金库。现在金库覆盖约 {coverage}%。
+        <p className="font-mono text-xs text-gold">TREASURY</p>
+        <h1 className="mt-1 text-2xl font-semibold">金库</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted">
+          {treasury.plannedPeople} 人 × {treasury.perPersonFloat} Ᵽ × 1.15 ={" "}
+          {treasury.plannedTreasury.toLocaleString("zh-CN")} Ᵽ。覆盖 {coverage}%。
         </p>
       </div>
 
@@ -115,99 +115,97 @@ export function AdminClient({
         <Stat label="已注册朋友" value={`${treasury.userCount} / ${treasury.plannedPeople}`} />
       </div>
 
-      <section className="rounded-[28px] border border-line bg-paper p-6">
-        <h2 className="font-display text-2xl">圈子规模与牌价</h2>
+      <section className="panel p-5">
+        <h2 className="font-mono text-sm">规模 / 牌价</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-sm text-muted">
             计划人数
             <input
               value={people}
               onChange={(e) => setPeople(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-line bg-bg px-4 py-3 font-mono text-ink"
+              className="field mt-2 w-full px-3 py-2 font-mono text-ink"
             />
           </label>
           <label className="text-sm text-muted">
-            每人日常浮存（Ᵽ）
+            人均浮存 Ᵽ
             <input
               value={floatAmt}
               onChange={(e) => setFloatAmt(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-line bg-bg px-4 py-3 font-mono text-ink"
+              className="field mt-2 w-full px-3 py-2 font-mono text-ink"
             />
           </label>
           <label className="text-sm text-muted">
-            1 Pay Me = ? CNY
+            1 Ᵽ = ? CNY
             <input
               value={rate}
               onChange={(e) => setRate(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-line bg-bg px-4 py-3 font-mono text-ink"
+              className="field mt-2 w-full px-3 py-2 font-mono text-ink"
             />
           </label>
           <label className="text-sm text-muted">
-            法币准备金（CNY）
+            CNY 准备金
             <input
               value={reserve}
               onChange={(e) => setReserve(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-line bg-bg px-4 py-3 font-mono text-ink"
+              className="field mt-2 w-full px-3 py-2 font-mono text-ink"
             />
           </label>
         </div>
-        <button onClick={save} className="mt-4 rounded-2xl bg-gold px-4 py-2 text-sm text-[#1a1208]">
-          保存设置
+        <button onClick={save} className="btn mt-4 px-4 py-2 text-sm">
+          保存
         </button>
-        <p className="mt-3 text-xs text-muted">
-          流通中 {formatPayme(treasury.circulating)}。需求 = 人数 × 人均 × 1.15。客服谈妥后可在下面入账。
-        </p>
+        <p className="mt-3 text-xs text-muted">流通 {formatPayme(treasury.circulating)}</p>
       </section>
 
-      <section className="rounded-[28px] border border-line bg-paper p-6">
-        <h2 className="font-display text-2xl">客服入账</h2>
-        <p className="mt-2 text-sm text-muted">朋友微信/支付宝打了人民币后，从金库拨 Pay Me；兑出则收回 Ᵽ。</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <section className="panel p-5">
+        <h2 className="font-mono text-sm">客服入账</h2>
+        <p className="mt-2 text-sm text-muted">法币到账后从金库拨 Ᵽ；兑出则收回。</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <input
             value={payoutUser}
             onChange={(e) => setPayoutUser(e.target.value)}
             placeholder="@用户名"
-            className="rounded-2xl border border-line bg-bg px-4 py-3 outline-none"
+            className="field px-3 py-2"
           />
           <input
             value={payoutAmount}
             onChange={(e) => setPayoutAmount(e.target.value)}
-            placeholder="Pay Me 数量"
-            className="rounded-2xl border border-line bg-bg px-4 py-3 font-mono outline-none"
+            placeholder="PAYME 数量"
+            className="field px-3 py-2 font-mono"
           />
           <input
             value={payoutFiat}
             onChange={(e) => setPayoutFiat(e.target.value)}
-            placeholder="对应人民币（可选）"
-            className="rounded-2xl border border-line bg-bg px-4 py-3 font-mono outline-none"
+            placeholder="对应 CNY（可选）"
+            className="field px-3 py-2 font-mono"
           />
           <input
             value={payoutNote}
             onChange={(e) => setPayoutNote(e.target.value)}
             placeholder="备注"
-            className="rounded-2xl border border-line bg-bg px-4 py-3 outline-none"
+            className="field px-3 py-2"
           />
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setPayoutDir("credit")}
-            className={`rounded-full px-3 py-1.5 text-sm ${
-              payoutDir === "credit" ? "bg-gold text-[#1a1208]" : "text-muted"
+            className={`px-3 py-1.5 font-mono text-xs ${
+              payoutDir === "credit" ? "tab-on" : "tab-off border border-line"
             }`}
           >
-            拨给用户
+            拨出
           </button>
           <button
             type="button"
             onClick={() => setPayoutDir("debit")}
-            className={`rounded-full px-3 py-1.5 text-sm ${
-              payoutDir === "debit" ? "bg-gold text-[#1a1208]" : "text-muted"
+            className={`px-3 py-1.5 font-mono text-xs ${
+              payoutDir === "debit" ? "tab-on" : "tab-off border border-line"
             }`}
           >
-            收回金库
+            收回
           </button>
-          <button onClick={payout} className="rounded-2xl bg-gold px-4 py-2 text-sm text-[#1a1208]">
+          <button onClick={payout} className="btn px-4 py-1.5 text-sm">
             执行
           </button>
         </div>
@@ -219,21 +217,18 @@ export function AdminClient({
           <div className="mt-5 space-y-2">
             <h3 className="text-sm text-muted">待处理兑换申请</h3>
             {requests.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line px-4 py-3 text-sm">
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border border-line px-3 py-2 text-sm">
                 <span>
                   @{r.username} · {r.side === "buy" ? "买入" : "兑出"} {r.amount}{" "}
                   {r.side === "buy" ? r.currency : "Ᵽ"}
                 </span>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => resolveRequest(r.id, "fill")}
-                    className="rounded-lg bg-gold px-2 py-1 text-xs text-[#1a1208]"
-                  >
+                  <button onClick={() => resolveRequest(r.id, "fill")} className="btn px-2 py-1 text-xs">
                     入账
                   </button>
                   <button
                     onClick={() => resolveRequest(r.id, "reject")}
-                    className="rounded-lg border border-line px-2 py-1 text-xs text-muted"
+                    className="border border-line px-2 py-1 text-xs text-muted"
                   >
                     拒绝
                   </button>
@@ -244,8 +239,8 @@ export function AdminClient({
         )}
       </section>
 
-      <section className="rounded-[28px] border border-line bg-paper">
-        <h2 className="px-6 pt-6 font-display text-2xl">成员</h2>
+      <section className="panel">
+        <h2 className="border-b border-line px-5 py-3 font-mono text-sm">成员</h2>
         <div className="mt-3 divide-y divide-line">
           {users.map((u) => (
             <div key={u.id} className="flex items-center justify-between px-6 py-3 text-sm">
@@ -259,8 +254,8 @@ export function AdminClient({
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-line bg-paper">
-        <h2 className="px-6 pt-6 font-display text-2xl">全站流水</h2>
+      <section className="panel">
+        <h2 className="border-b border-line px-5 py-3 font-mono text-sm">流水</h2>
         <div className="mt-3 divide-y divide-line">
           {transactions.map((tx) => (
             <div key={tx.id} className="flex justify-between px-6 py-3 text-sm">
@@ -278,9 +273,9 @@ export function AdminClient({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[28px] border border-line bg-paper p-5">
-      <div className="text-xs uppercase tracking-[0.18em] text-muted">{label}</div>
-      <div className="mt-2 font-display text-2xl text-gold">{value}</div>
+    <div className="panel p-4">
+      <div className="font-mono text-[11px] text-muted">{label}</div>
+      <div className="mt-2 font-mono text-xl text-moss">{value}</div>
     </div>
   );
 }

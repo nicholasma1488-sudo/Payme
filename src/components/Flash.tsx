@@ -10,10 +10,8 @@ export function Flash({
   if (!text) return null;
   return (
     <div
-      className={`rounded-2xl border px-4 py-3 text-sm ${
-        tone === "err"
-          ? "border-rose/40 bg-rose/10 text-rose"
-          : "border-moss/40 bg-moss/10 text-moss"
+      className={`border px-3 py-2 font-mono text-xs ${
+        tone === "err" ? "border-rose/50 bg-rose/10 text-rose" : "border-moss/50 bg-moss/10 text-moss"
       }`}
     >
       {text}

@@ -191,21 +191,21 @@ export function ChatClient() {
   }
 
   return (
-    <div className="grid min-h-[70vh] overflow-hidden rounded-[28px] border border-line bg-paper lg:grid-cols-[280px_1fr]">
+    <div className="panel grid min-h-[70vh] overflow-hidden lg:grid-cols-[260px_1fr]">
       <aside className="border-b border-line lg:border-b-0 lg:border-r">
         <div className="p-4">
-          <h1 className="font-display text-2xl">聊天</h1>
+          <h1 className="font-mono text-sm">聊天</h1>
           <form onSubmit={addPerson} className="mt-3 flex gap-2">
             <input
               value={addName}
               onChange={(e) => setAddName(e.target.value)}
               placeholder="@用户名"
-              className="min-w-0 flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm outline-none"
+              className="field min-w-0 flex-1 px-3 py-2 text-sm"
             />
-            <button className="rounded-xl bg-gold px-3 text-xs text-[#1a1208]">添加</button>
+            <button className="btn px-3 text-xs">添加</button>
           </form>
-          <button onClick={openSupport} className="mt-2 w-full rounded-xl border border-gold/30 py-2 text-xs text-gold">
-            连接客服
+          <button onClick={openSupport} className="btn-ghost mt-2 w-full py-2 text-xs">
+            客服
           </button>
           <div className="mt-2">
             <Flash text={error} tone="err" />
@@ -229,11 +229,9 @@ export function ChatClient() {
 
       <section className="flex min-h-[50vh] flex-col">
         <div className="border-b border-line px-5 py-4">
-          <div className="font-display text-xl">{current?.title || "选一个对话"}</div>
+          <div className="font-mono text-sm">{current?.title || "选择对话"}</div>
           <p className="text-xs text-muted">
-            {current?.type === "support"
-              ? "这里直达管理员，可以谈兑换或任何问题。"
-              : "用用户名把朋友加进来，也可以直接付钱。"}
+            {current?.type === "support" ? "管理员 / 兑钱" : "/pay 金额 @用户名"}
           </p>
         </div>
         {current?.type === "dm" && current.otherUsername && (
@@ -243,15 +241,15 @@ export function ChatClient() {
               onChange={(e) => setPayAmount(e.target.value)}
               placeholder="付给 TA 的 Ᵽ"
               inputMode="decimal"
-              className="rounded-xl border border-line bg-bg px-3 py-2 font-mono text-sm outline-none"
+              className="field px-3 py-2 font-mono text-sm"
             />
             <input
               value={payNote}
               onChange={(e) => setPayNote(e.target.value)}
               placeholder="备注"
-              className="rounded-xl border border-line bg-bg px-3 py-2 text-sm outline-none"
+              className="field px-3 py-2 text-sm"
             />
-            <button className="rounded-xl bg-gold px-3 text-xs text-[#1a1208]">付给 @{current.otherUsername}</button>
+            <button className="btn px-3 text-xs">PAY @{current.otherUsername}</button>
           </form>
         )}
         {current?.type === "support" && role !== "admin" && (
@@ -262,7 +260,7 @@ export function ChatClient() {
             <select
               value={exSide}
               onChange={(e) => setExSide(e.target.value as "buy" | "sell")}
-              className="rounded-xl border border-line bg-bg px-3 py-2 text-sm"
+              className="field px-3 py-2 text-sm"
             >
               <option value="buy">买入 Ᵽ</option>
               <option value="sell">兑出 Ᵽ</option>
@@ -270,13 +268,13 @@ export function ChatClient() {
             <input
               value={exAmount}
               onChange={(e) => setExAmount(e.target.value)}
-              placeholder={exSide === "buy" ? "法币金额" : "Pay Me 数量"}
-              className="rounded-xl border border-line bg-bg px-3 py-2 font-mono text-sm outline-none"
+              placeholder={exSide === "buy" ? "法币金额" : "PAYME"}
+              className="field px-3 py-2 font-mono text-sm"
             />
             <select
               value={exCurrency}
               onChange={(e) => setExCurrency(e.target.value)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm"
+              className="field px-2 py-2 text-sm"
             >
               {SUPPORTED_FIAT.map((c) => (
                 <option key={c} value={c}>
@@ -284,7 +282,7 @@ export function ChatClient() {
                 </option>
               ))}
             </select>
-            <button className="rounded-xl border border-gold/40 px-3 text-xs text-gold">请客服兑钱</button>
+            <button className="btn-ghost px-3 text-xs">兑钱</button>
           </form>
         )}
         {role === "admin" && requests.length > 0 && (
@@ -298,13 +296,13 @@ export function ChatClient() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => resolveRequest(r.id, "fill")}
-                    className="rounded-lg bg-gold px-2 py-1 text-xs text-[#1a1208]"
+                    className="btn px-2 py-1 text-xs"
                   >
                     入账
                   </button>
                   <button
                     onClick={() => resolveRequest(r.id, "reject")}
-                    className="rounded-lg border border-line px-2 py-1 text-xs text-muted"
+                    className="border border-line px-2 py-1 text-xs text-muted"
                   >
                     拒绝
                   </button>
@@ -320,8 +318,8 @@ export function ChatClient() {
               <div key={m.id} className={`max-w-[80%] ${mine ? "ml-auto text-right" : ""}`}>
                 <div className="text-[11px] text-muted">@{m.senderUsername}</div>
                 <div
-                  className={`mt-1 inline-block rounded-2xl px-3 py-2 text-sm ${
-                    mine ? "bg-gold text-[#1a1208]" : "bg-paper-2"
+                  className={`mt-1 inline-block px-3 py-2 text-sm ${
+                    mine ? "bg-gold text-[#0b0e11]" : "bg-paper-2"
                   }`}
                 >
                   {m.body}
@@ -335,10 +333,10 @@ export function ChatClient() {
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="写消息，也可以谈兑换"
-              className="min-w-0 flex-1 rounded-2xl border border-line bg-bg px-4 py-3 outline-none"
+              placeholder="消息"
+              className="field min-w-0 flex-1 px-3 py-2"
             />
-            <button className="rounded-2xl bg-gold px-4 text-sm text-[#1a1208]">发送</button>
+            <button className="btn px-4 text-sm">发送</button>
           </form>
         )}
       </section>

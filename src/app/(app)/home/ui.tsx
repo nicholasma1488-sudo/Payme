@@ -6,11 +6,11 @@ import type { Transaction } from "@/lib/types";
 import { Flash } from "@/components/Flash";
 
 function typeLabel(type: Transaction["type"]) {
-  if (type === "pay") return "转账";
-  if (type === "exchange_in") return "兑入";
-  if (type === "exchange_out") return "兑出";
-  if (type === "auction") return "拍卖";
-  return "调整";
+  if (type === "pay") return "PAY";
+  if (type === "exchange_in") return "BUY";
+  if (type === "exchange_out") return "SELL";
+  if (type === "auction") return "MKT";
+  return "ADJ";
 }
 
 export function HomeClient({
@@ -66,38 +66,38 @@ export function HomeClient({
   }
 
   return (
-    <div className="space-y-8">
-      <section className="overflow-hidden rounded-[32px] border border-gold/20 bg-gradient-to-br from-[#2a2118] to-[#16120e] p-8">
-        <p className="text-xs uppercase tracking-[0.22em] text-muted">@{username} 的 Pay Me</p>
-        <h1 className="mt-3 font-display text-5xl text-gold">{balanceLabel}</h1>
-        <p className="mt-2 text-muted">实时约合 {fiatLabel}</p>
-        <div className="mt-6 grid gap-3 text-sm text-muted md:grid-cols-3">
-          <div className="rounded-2xl border border-line bg-black/20 p-4">
-            底部命令栏直接写
-            <span className="block font-mono text-gold">/pay 20 luna</span>
+    <div className="space-y-5">
+      <section className="panel p-6">
+        <p className="font-mono text-xs text-muted">@{username} · SPOT</p>
+        <h1 className="mt-2 font-mono text-4xl text-moss">{balanceLabel}</h1>
+        <p className="mt-1 font-mono text-sm text-muted">≈ {fiatLabel}</p>
+        <div className="mt-5 grid gap-2 font-mono text-xs text-muted md:grid-cols-3">
+          <div className="border border-line bg-bg p-3">
+            转账
+            <span className="mt-1 block text-gold">/pay 20 @luna</span>
           </div>
-          <div className="rounded-2xl border border-line bg-black/20 p-4">
-            任意法币兑入兑出
-            <span className="block font-mono text-gold">/exchange 200 CNY</span>
+          <div className="border border-line bg-bg p-3">
+            兑换
+            <span className="mt-1 block text-gold">/exchange 200 CNY</span>
           </div>
-          <div className="rounded-2xl border border-line bg-black/20 p-4">
-            客服就是管理员
-            <span className="block font-mono text-gold">/support</span>
+          <div className="border border-line bg-bg p-3">
+            客服
+            <span className="mt-1 block text-gold">/support</span>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <form onSubmit={sendPay} className="rounded-[28px] border border-line bg-paper p-5">
-          <h2 className="font-display text-2xl">付给朋友</h2>
-          <p className="mt-1 text-sm text-muted">写用户名和金额，或用底部命令栏 /pay 20 to luna</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-2">
+        <form onSubmit={sendPay} className="panel p-5">
+          <h2 className="font-mono text-sm">转账</h2>
+          <p className="mt-1 text-xs text-muted">或底部输入 /pay 金额 @用户名</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
             <input
               value={payTo}
               onChange={(e) => setPayTo(e.target.value)}
               placeholder="@用户名"
               required
-              className="rounded-2xl border border-line bg-bg px-4 py-3 outline-none"
+              className="field px-3 py-2"
             />
             <input
               value={payAmount}
@@ -105,37 +105,34 @@ export function HomeClient({
               placeholder="金额 Ᵽ"
               required
               inputMode="decimal"
-              className="rounded-2xl border border-line bg-bg px-4 py-3 font-mono outline-none"
+              className="field px-3 py-2 font-mono"
             />
             <input
               value={payNote}
               onChange={(e) => setPayNote(e.target.value)}
               placeholder="备注"
-              className="rounded-2xl border border-line bg-bg px-4 py-3 outline-none"
+              className="field px-3 py-2"
             />
           </div>
           <div className="mt-3 space-y-2">
             <Flash text={error} tone="err" />
             <Flash text={message} />
           </div>
-          <button
-            disabled={busy}
-            className="mt-3 rounded-2xl bg-gold px-4 py-2 text-sm font-medium text-[#1a1208]"
-          >
-            {busy ? "付款中…" : "付款"}
+          <button disabled={busy} className="btn mt-3 px-4 py-2 text-sm">
+            {busy ? "..." : "PAY"}
           </button>
         </form>
-        <div className="rounded-[28px] border border-line bg-paper p-5">
-          <h2 className="font-display text-2xl">朋友</h2>
-          <p className="mt-1 text-sm text-muted">用 /add 用户名 或聊天页添加。点名字就能付。</p>
+        <div className="panel p-5">
+          <h2 className="font-mono text-sm">联系人</h2>
+          <p className="mt-1 text-xs text-muted">/add @用户名</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {contacts.length === 0 && <p className="text-sm text-muted">还没有好友。先 /add luna 试试。</p>}
+            {contacts.length === 0 && <p className="text-sm text-muted">空</p>}
             {contacts.map((c) => (
               <button
                 key={c.username}
                 type="button"
                 onClick={() => setPayTo(c.username)}
-                className="rounded-full border border-gold/30 px-3 py-1.5 text-sm text-gold"
+                className="border border-line px-2 py-1 font-mono text-xs text-gold hover:border-gold"
               >
                 @{c.username}
               </button>
@@ -144,30 +141,25 @@ export function HomeClient({
         </div>
       </section>
 
-      <section>
-        <h2 className="font-display text-2xl">最近流水</h2>
-        <div className="mt-4 divide-y divide-line rounded-3xl border border-line bg-paper">
-          {activity.length === 0 && (
-            <p className="px-5 py-8 text-sm text-muted">还没有记录。先向朋友转一笔，或去兑换。</p>
-          )}
-          {activity.map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between gap-4 px-5 py-4">
-              <div>
-                <div className="text-sm">
-                  {typeLabel(tx.type)}{" "}
-                  <span className="text-muted">
-                    {tx.fromUsername ? `@${tx.fromUsername}` : "系统"} →{" "}
-                    {tx.toUsername ? `@${tx.toUsername}` : "系统"}
-                  </span>
-                </div>
-                <div className="text-xs text-muted">
-                  {tx.note || "—"} · {new Date(tx.createdAt).toLocaleString("zh-CN")}
-                </div>
+      <section className="panel">
+        <h2 className="border-b border-line px-5 py-3 font-mono text-sm">流水</h2>
+        {activity.length === 0 && <p className="px-5 py-8 text-sm text-muted">无记录</p>}
+        {activity.map((tx) => (
+          <div key={tx.id} className="flex items-center justify-between gap-4 border-t border-line px-5 py-3">
+            <div>
+              <div className="font-mono text-xs">
+                <span className="text-gold">{typeLabel(tx.type)}</span>{" "}
+                <span className="text-muted">
+                  {tx.fromUsername ? `@${tx.fromUsername}` : "—"} → {tx.toUsername ? `@${tx.toUsername}` : "—"}
+                </span>
               </div>
-              <div className="font-mono text-gold">{tx.amountPayme.toFixed(2)} Ᵽ</div>
+              <div className="text-[11px] text-muted">
+                {tx.note || "—"} · {new Date(tx.createdAt).toLocaleString("zh-CN")}
+              </div>
             </div>
-          ))}
-        </div>
+            <div className="font-mono text-sm text-moss">{tx.amountPayme.toFixed(2)} Ᵽ</div>
+          </div>
+        ))}
       </section>
     </div>
   );

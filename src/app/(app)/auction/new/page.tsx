@@ -57,33 +57,33 @@ export default function NewListingPage() {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-xl space-y-4">
-      <p className="text-xs uppercase tracking-[0.22em] text-copper">新拍卖</p>
-      <h1 className="font-display text-4xl">拍张照，标个价</h1>
+    <form onSubmit={submit} className="mx-auto max-w-xl space-y-3">
+      <p className="font-mono text-xs text-gold">NEW LISTING</p>
+      <h1 className="text-2xl font-semibold">上架</h1>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="标题"
         required
-        className="w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none"
+        className="field w-full px-3 py-2.5"
       />
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="这是什么，为什么卖掉"
+        placeholder="描述"
         rows={4}
-        className="w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none"
+        className="field w-full px-3 py-2.5"
       />
       <input
         value={price}
         onChange={(e) => setPrice(e.target.value)}
-        placeholder="价格（Pay Me）"
+        placeholder="价格 Ᵽ"
         required
         inputMode="decimal"
-        className="w-full rounded-2xl border border-line bg-paper px-4 py-3 font-mono outline-none"
+        className="field w-full px-3 py-2.5 font-mono"
       />
-      <label className="block cursor-pointer rounded-2xl border border-dashed border-gold/40 bg-paper p-6 text-center text-sm text-muted">
-        拍照或从相册选图
+      <label className="block cursor-pointer border border-dashed border-line bg-paper p-6 text-center text-sm text-muted">
+        拍照 / 选图
         <input
           type="file"
           accept="image/*"
@@ -97,13 +97,13 @@ export default function NewListingPage() {
         <div className="grid grid-cols-3 gap-2">
           {previews.map((src) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={src} src={src} alt="" className="aspect-square rounded-xl object-cover" />
+            <img key={src} src={src} alt="" className="aspect-square object-cover" />
           ))}
         </div>
       )}
       <Flash text={error} tone="err" />
-      <button disabled={busy} className="w-full rounded-2xl bg-gold py-3 text-sm font-medium text-[#1a1208]">
-        {busy ? "上架中…" : "放到拍卖场"}
+      <button disabled={busy} className="btn w-full py-2.5 text-sm">
+        {busy ? "..." : "上架"}
       </button>
     </form>
   );

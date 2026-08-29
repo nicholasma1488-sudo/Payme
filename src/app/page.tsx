@@ -47,87 +47,82 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="px-6 py-5">
-        <div className="font-display text-3xl text-gold">Pay Me</div>
-        <p className="mt-1 text-xs uppercase tracking-[0.28em] text-muted">朋友之间的比特币</p>
+      <header className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center bg-gold font-mono text-sm font-bold text-[#0b0e11]">
+            Ᵽ
+          </span>
+          <span className="font-mono text-lg font-semibold">PAYME</span>
+        </div>
+        <p className="font-mono text-[11px] text-muted">内部通用币 · 非链上比特币</p>
       </header>
       <RateTicker />
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 lg:grid-cols-2 lg:items-center">
+      <div className="mx-auto grid max-w-5xl gap-10 px-6 py-14 lg:grid-cols-2 lg:items-center">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-copper">私人圈子账本</p>
-          <h1 className="mt-3 font-display text-5xl leading-[1.05] text-ink md:text-6xl">
-            写一句命令，
+          <p className="font-mono text-xs text-gold">PAYME / MARKET</p>
+          <h1 className="mt-3 text-4xl font-semibold leading-tight md:text-5xl">
+            圈子通用币
             <br />
-            把钱付给朋友。
+            像交易所一样用
           </h1>
-          <p className="mt-5 max-w-md text-muted">
-            邮箱登录，起一个用户名就能收款。Pay Me 是你们自己的货币；人民币或任意法币可以按实时汇率兑进兑出。拍卖拍照即卖，客服直连管理员。
+          <p className="mt-4 max-w-md text-sm text-muted">
+            不是真正的比特币。PAYME 是你们自己的通用货币，用法币按实时汇率兑进兑出。命令转账、拍照上架、客服入账。
           </p>
-          <div className="mt-8 rounded-2xl border border-gold/25 bg-paper px-4 py-3 font-mono text-sm text-gold">
-            /pay 20 luna 午饭
+          <div className="mt-6 border border-gold/30 bg-paper px-4 py-3 font-mono text-sm text-gold">
+            /pay 20 @luna
           </div>
-          <ul className="mt-6 space-y-2 text-sm text-muted">
-            <li>· 金库按 70 人圈子备好流动性</li>
-            <li>· 实时汇率对照你选择的货币</li>
-            <li>· 聊天里加朋友，或 /support 找客服兑换</li>
+          <ul className="mt-5 space-y-1 font-mono text-xs text-muted">
+            <li>70 人金库流动性</li>
+            <li>CNY / USD / EUR 实时牌价</li>
+            <li>/support 找管理员兑钱</li>
           </ul>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="rounded-[28px] border border-line bg-paper/90 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.35)]"
-        >
+        <form onSubmit={submit} className="panel p-6">
           <div className="mb-5 flex gap-2">
             <button
               type="button"
               onClick={() => setMode("login")}
-              className={`rounded-full px-4 py-1.5 text-sm ${
-                mode === "login" ? "bg-gold text-[#1a1208]" : "text-muted"
-              }`}
+              className={`px-3 py-1.5 font-mono text-xs ${mode === "login" ? "tab-on" : "tab-off"}`}
             >
               登录
             </button>
             <button
               type="button"
               onClick={() => setMode("register")}
-              className={`rounded-full px-4 py-1.5 text-sm ${
-                mode === "register" ? "bg-gold text-[#1a1208]" : "text-muted"
-              }`}
+              className={`px-3 py-1.5 font-mono text-xs ${mode === "register" ? "tab-on" : "tab-off"}`}
             >
-              用邮箱注册
+              注册
             </button>
           </div>
-          <label className="block text-xs uppercase tracking-[0.18em] text-muted">邮箱</label>
+          <label className="font-mono text-[11px] text-muted">邮箱</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-line bg-bg px-4 py-3 outline-none focus:border-gold/50"
+            className="field mt-2 w-full px-3 py-2.5"
             placeholder="you@friends.com"
           />
-          <label className="mt-4 block text-xs uppercase tracking-[0.18em] text-muted">密码</label>
+          <label className="mt-4 block font-mono text-[11px] text-muted">密码</label>
           <input
             type="password"
             required
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-line bg-bg px-4 py-3 outline-none focus:border-gold/50"
+            className="field mt-2 w-full px-3 py-2.5"
             placeholder="至少 6 位"
           />
           <div className="mt-4">
             <Flash text={error} tone="err" />
           </div>
-          <button
-            disabled={busy}
-            className="mt-5 w-full rounded-2xl bg-gold py-3 text-sm font-medium text-[#1a1208] disabled:opacity-60"
-          >
-            {busy ? "请稍等…" : mode === "login" ? "进入 Pay Me" : "创建账户"}
+          <button disabled={busy} className="btn mt-5 w-full py-2.5 text-sm">
+            {busy ? "..." : mode === "login" ? "进入市场" : "创建账户"}
           </button>
-          <p className="mt-4 text-xs leading-relaxed text-muted">
-            演示账号：luna@payme.app / friends123　·　管理员：admin@payme.app / PaymeAdmin70!
+          <p className="mt-4 font-mono text-[11px] text-muted">
+            luna@payme.app / friends123 · admin@payme.app / PaymeAdmin70!
           </p>
         </form>
       </div>

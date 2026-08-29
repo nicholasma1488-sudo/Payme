@@ -35,39 +35,36 @@ export default function OnboardPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6">
-      <p className="text-xs uppercase tracking-[0.24em] text-copper">第一步</p>
-      <h1 className="mt-3 font-display text-4xl text-ink">给自己一个用户名</h1>
-      <p className="mt-3 text-muted">朋友用这个名字给你付钱，也可以用它把你加进聊天。</p>
+    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
+      <p className="font-mono text-xs text-gold">SETUP</p>
+      <h1 className="mt-2 text-3xl font-semibold">设置用户名</h1>
+      <p className="mt-2 text-sm text-muted">别人用 /pay 金额 @你的名字 付钱。</p>
       <form onSubmit={submit} className="mt-8 space-y-4">
         <div>
-          <label className="text-xs uppercase tracking-[0.18em] text-muted">用户名</label>
-          <div className="mt-2 flex items-center rounded-2xl border border-line bg-paper px-4">
+          <label className="font-mono text-[11px] text-muted">用户名</label>
+          <div className="field mt-2 flex items-center px-3">
             <span className="text-gold">@</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              className="w-full bg-transparent px-2 py-3 outline-none"
+              className="w-full bg-transparent px-2 py-2.5 outline-none"
               placeholder="luna"
               required
             />
           </div>
         </div>
         <div>
-          <label className="text-xs uppercase tracking-[0.18em] text-muted">显示名（可选）</label>
+          <label className="font-mono text-[11px] text-muted">显示名（可选）</label>
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-line bg-paper px-4 py-3 outline-none"
+            className="field mt-2 w-full px-3 py-2.5"
             placeholder="Luna"
           />
         </div>
         <Flash text={error} tone="err" />
-        <button
-          disabled={busy}
-          className="w-full rounded-2xl bg-gold py-3 text-sm font-medium text-[#1a1208]"
-        >
-          {busy ? "保存中…" : "开始用 Pay Me"}
+        <button disabled={busy} className="btn w-full py-2.5 text-sm">
+          {busy ? "..." : "进入市场"}
         </button>
       </form>
     </div>

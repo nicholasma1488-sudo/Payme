@@ -7,7 +7,7 @@ import { COMMAND_HELP, parseCommand } from "@/lib/commands";
 export function CommandBar({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
   const [value, setValue] = useState("");
-  const [hint, setHint] = useState("试试 /pay 20 luna 午饭");
+  const [hint, setHint] = useState("/pay 20 @luna");
   const [busy, setBusy] = useState(false);
   const [openHelp, setOpenHelp] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -26,22 +26,22 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
   useEffect(() => {
     const parsed = parseCommand(value || "/");
     if (!value.trim()) {
-      setHint("命令：/pay 20 to luna · /exchange 200 CNY · /add 用户名 · /support");
+      setHint("/pay 20 @luna   /exchange 200 CNY   /add @kai   /support");
       return;
     }
     if (parsed.type === "unknown") setHint(parsed.hint);
-    else if (parsed.type === "pay") setHint(`付给 @${parsed.username} ${parsed.amount} Ᵽ`);
+    else if (parsed.type === "pay") setHint(`PAY ${parsed.amount} Ᵽ → @${parsed.username}`);
     else if (parsed.type === "exchange") {
       setHint(
         parsed.side === "buy"
-          ? `用 ${parsed.amount} ${parsed.currency} 买入 Pay Me`
-          : `卖出 ${parsed.amount} Ᵽ 换成 ${parsed.currency}`,
+          ? `BUY ${parsed.amount} ${parsed.currency} → PAYME`
+          : `SELL ${parsed.amount} Ᵽ → ${parsed.currency}`,
       );
-    }     else if (parsed.type === "chat") setHint(`打开与 @${parsed.username} 的对话`);
-    else if (parsed.type === "add") setHint(`添加 @${parsed.username} 并打开聊天`);
-    else if (parsed.type === "support") setHint("连接管理员客服");
-    else if (parsed.type === "sell") setHint("去拍卖上架");
-    else setHint("回车执行");
+    } else if (parsed.type === "chat") setHint(`CHAT @${parsed.username}`);
+    else if (parsed.type === "add") setHint(`ADD @${parsed.username}`);
+    else if (parsed.type === "support") setHint("SUPPORT");
+    else if (parsed.type === "sell") setHint("SELL → 拍卖");
+    else setHint("Enter");
   }, [value]);
 
   async function submit(e: FormEvent) {
@@ -56,7 +56,7 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setHint(data.error || data.message || "执行失败");
+        setHint(data.error || data.message || "失败");
         return;
       }
       if (data.action === "help") {
@@ -64,27 +64,27 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
         return;
       }
       if (data.href) router.push(data.href);
-      setHint(data.message || "完成");
+      setHint(data.message || "OK");
       setValue("");
       onDone?.();
       router.refresh();
     } catch {
-      setHint("网络出错了");
+      setHint("网络错误");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-line bg-[#100e0b]/90 px-3 py-3 backdrop-blur-md md:px-6">
-      <form onSubmit={submit} className="mx-auto max-w-4xl">
-        <div className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-paper px-4 py-3 shadow-[0_0_0_1px_rgba(224,181,106,0.08),0_18px_50px_rgba(0,0,0,0.35)]">
-          <span className="font-mono text-gold">/</span>
+    <div className="sticky bottom-0 z-30 border-t border-line bg-[#0b0e11] px-3 py-2 md:px-6">
+      <form onSubmit={submit} className="mx-auto max-w-5xl">
+        <div className="flex items-center gap-2 border border-gold/40 bg-paper px-3 py-2">
+          <span className="font-mono text-sm text-gold">/</span>
           <input
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="pay 20 luna 午饭"
+            placeholder="pay 20 @luna"
             className="min-w-0 flex-1 bg-transparent font-mono text-sm text-ink outline-none placeholder:text-muted/50"
             autoComplete="off"
             spellCheck={false}
@@ -92,20 +92,17 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
           <button
             type="button"
             onClick={() => setOpenHelp((v) => !v)}
-            className="hidden text-[11px] uppercase tracking-[0.18em] text-muted md:inline"
+            className="hidden font-mono text-[11px] text-muted md:inline"
           >
-            帮助
+            HELP
           </button>
-          <button
-            disabled={busy}
-            className="rounded-xl bg-gold px-3 py-1.5 text-xs font-medium text-[#1a1208] disabled:opacity-60"
-          >
-            {busy ? "…" : "执行"}
+          <button disabled={busy} className="btn px-3 py-1.5 font-mono text-xs">
+            {busy ? "..." : "RUN"}
           </button>
         </div>
-        <p className="mt-2 px-1 font-mono text-[11px] text-muted">{hint}</p>
+        <p className="mt-1.5 px-1 font-mono text-[11px] text-muted">{hint}</p>
         {openHelp && (
-          <div className="mt-2 grid gap-1 rounded-2xl border border-line bg-paper-2 p-3 text-sm">
+          <div className="panel mt-2 grid gap-0 p-1 text-sm">
             {COMMAND_HELP.map((row) => (
               <button
                 key={row.cmd}
@@ -114,7 +111,7 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
                   setValue(row.cmd);
                   inputRef.current?.focus();
                 }}
-                className="flex items-center justify-between rounded-xl px-2 py-1.5 text-left hover:bg-white/5"
+                className="flex items-center justify-between px-2 py-1.5 text-left hover:bg-white/5"
               >
                 <span className="font-mono text-gold">{row.cmd}</span>
                 <span className="text-muted">{row.desc}</span>

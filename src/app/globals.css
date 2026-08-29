@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #100e0b;
-  --paper: #1a1612;
-  --paper-2: #221c16;
-  --ink: #f3ead8;
-  --muted: #b5a48a;
-  --gold: #e0b56a;
-  --copper: #c4784a;
-  --moss: #8fbf9f;
-  --rose: #d46a6a;
-  --line: rgba(243, 234, 216, 0.12);
+  --bg: #0b0e11;
+  --paper: #12161c;
+  --paper-2: #181c24;
+  --ink: #eaecef;
+  --muted: #848e9c;
+  --gold: #f7931a;
+  --copper: #f0b90b;
+  --moss: #0ecb81;
+  --rose: #f6465d;
+  --line: #2b3139;
 }
 
 @theme inline {
@@ -24,8 +24,8 @@
   --color-moss: var(--moss);
   --color-rose: var(--rose);
   --color-line: var(--line);
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-outfit);
+  --font-display: var(--font-sans);
+  --font-sans: var(--font-plex);
   --font-mono: var(--font-ibm);
 }
 
@@ -37,25 +37,18 @@ body {
 }
 
 body {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  background-color: #0b0e11;
   background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(224, 181, 106, 0.12), transparent 55%),
-    radial-gradient(900px 500px at 110% 10%, rgba(196, 120, 74, 0.1), transparent 50%),
-    linear-gradient(180deg, #14110d 0%, #100e0b 40%, #0c0b09 100%);
-}
-
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  opacity: 0.08;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    linear-gradient(rgba(247, 147, 26, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 147, 26, 0.04) 1px, transparent 1px),
+    radial-gradient(900px 400px at 0% 0%, rgba(247, 147, 26, 0.08), transparent 50%);
+  background-size: 48px 48px, 48px 48px, auto;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3a3126 transparent;
+  scrollbar-color: #2b3139 transparent;
 }
 
 a {
@@ -70,7 +63,7 @@ button {
 }
 
 .ticker {
-  animation: ticker 42s linear infinite;
+  animation: ticker 36s linear infinite;
 }
 
 @keyframes ticker {
@@ -82,7 +75,45 @@ button {
   }
 }
 
-.gold-line {
-  background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  height: 1px;
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.btn {
+  background: var(--gold);
+  color: #0b0e11;
+  font-weight: 600;
+  border-radius: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+}
+
+.btn-ghost {
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  background: transparent;
+  border-radius: 2px;
+}
+
+.field {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  outline: none;
+}
+
+.field:focus {
+  border-color: var(--gold);
+}
+
+.tab-on {
+  background: var(--gold);
+  color: #0b0e11;
+}
+
+.tab-off {
+  color: var(--muted);
 }

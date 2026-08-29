@@ -78,46 +78,40 @@ export default function ExchangePage() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-      <section>
-        <p className="text-xs uppercase tracking-[0.22em] text-copper">实时兑换</p>
-        <h1 className="mt-2 font-display text-4xl">人民币或其他货币 ↔ Pay Me</h1>
-        <p className="mt-3 max-w-xl text-muted">
-          汇率按公开市场中间价滚动更新，Pay Me 锚定人民币（默认 1 Ᵽ = 10 CNY，管理员可改）。买入时金库付出 Pay Me、收入法币准备金；卖出相反。
-        </p>
+    <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <section className="panel p-5">
+        <p className="font-mono text-xs text-gold">SPOT · PAYME</p>
+        <h1 className="mt-1 text-2xl font-semibold">交易</h1>
+        <p className="mt-2 text-sm text-muted">法币 ↔ PAYME。默认 1 Ᵽ = 10 CNY，牌价实时更新。不是链上 BTC。</p>
 
-        <form onSubmit={submit} className="mt-8 space-y-4 rounded-[28px] border border-line bg-paper p-6">
+        <form onSubmit={submit} className="mt-6 space-y-3">
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setSide("buy")}
-              className={`rounded-full px-4 py-1.5 text-sm ${
-                side === "buy" ? "bg-gold text-[#1a1208]" : "text-muted"
-              }`}
+              className={`px-4 py-1.5 font-mono text-xs ${side === "buy" ? "bg-moss text-[#0b0e11]" : "tab-off border border-line"}`}
             >
-              买入 Pay Me
+              买入
             </button>
             <button
               type="button"
               onClick={() => setSide("sell")}
-              className={`rounded-full px-4 py-1.5 text-sm ${
-                side === "sell" ? "bg-gold text-[#1a1208]" : "text-muted"
-              }`}
+              className={`px-4 py-1.5 font-mono text-xs ${side === "sell" ? "bg-rose text-white" : "tab-off border border-line"}`}
             >
-              兑出法币
+              卖出
             </button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+          <div className="grid gap-2 sm:grid-cols-[1fr_120px]">
             <input
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="rounded-2xl border border-line bg-bg px-4 py-3 font-mono outline-none"
+              className="field px-3 py-2.5 font-mono"
               inputMode="decimal"
             />
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="rounded-2xl border border-line bg-bg px-3 py-3"
+              className="field px-3 py-2.5 font-mono"
             >
               {SUPPORTED_FIAT.map((c) => (
                 <option key={c} value={c}>
@@ -127,48 +121,44 @@ export default function ExchangePage() {
             </select>
           </div>
           {quote && (
-            <div className="rounded-2xl border border-gold/20 bg-gold/5 p-4 font-mono text-sm">
+            <div className="border border-line bg-bg p-3 font-mono text-sm">
               {side === "buy" ? (
                 <p>
-                  {quote.inputAmount} {currency} → <span className="text-gold">{quote.payme} Ᵽ</span>
-                  <span className="block text-xs text-muted">折合 {quote.cny} CNY · 牌价 1 Ᵽ = {quote.cnyPerPayme} CNY</span>
+                  {quote.inputAmount} {currency} → <span className="text-moss">{quote.payme} Ᵽ</span>
+                  <span className="mt-1 block text-[11px] text-muted">
+                    {quote.cny} CNY · 1 Ᵽ = {quote.cnyPerPayme} CNY
+                  </span>
                 </p>
               ) : (
                 <p>
-                  {quote.payme} Ᵽ → <span className="text-gold">{quote.fiat} {currency}</span>
-                  <span className="block text-xs text-muted">金库将减少 {quote.cny} CNY 准备金</span>
+                  {quote.payme} Ᵽ →{" "}
+                  <span className="text-rose">
+                    {quote.fiat} {currency}
+                  </span>
                 </p>
               )}
             </div>
           )}
           <Flash text={error} tone="err" />
           <Flash text={message} />
-          <button disabled={busy} className="w-full rounded-2xl bg-gold py-3 text-sm font-medium text-[#1a1208]">
-            {busy ? "兑换中…" : "按实时牌价兑换"}
+          <button disabled={busy} className="btn w-full py-2.5 text-sm">
+            {busy ? "..." : side === "buy" ? "买入 PAYME" : "卖出 PAYME"}
           </button>
-          <p className="text-xs text-muted">
-            线下打款或大额，走客服确认。命令栏也可写{" "}
-            <span className="font-mono text-gold">/exchange 200 CNY</span>
-          </p>
+          <p className="font-mono text-[11px] text-muted">命令：/exchange 200 CNY</p>
         </form>
       </section>
 
-      <aside className="rounded-[28px] border border-line bg-paper p-6">
-        <h2 className="font-display text-2xl">找客服兑换</h2>
-        <p className="mt-3 text-sm text-muted">
-          管理员账户持有圈子金库。如果你要微信/支付宝转人民币再入账，或金库提示不足，直接连线客服。
-        </p>
-        <button
-          onClick={openSupport}
-          className="mt-6 w-full rounded-2xl border border-gold/40 py-3 text-sm text-gold"
-        >
-          连接管理员客服
+      <aside className="panel p-5">
+        <h2 className="font-mono text-sm">OTC / 客服</h2>
+        <p className="mt-2 text-sm text-muted">微信支付宝打款后，让管理员从金库入账。</p>
+        <button onClick={openSupport} className="btn-ghost mt-5 w-full py-2.5 text-sm">
+          连接客服
         </button>
-        <div className="mt-6 space-y-2 text-sm text-muted">
-          <p>1. 告诉客服金额与币种</p>
-          <p>2. 按约定完成法币转账</p>
-          <p>3. 客服从金库拨付 Pay Me，或帮你兑出</p>
-        </div>
+        <ol className="mt-5 list-decimal space-y-1 pl-4 text-xs text-muted">
+          <li>报金额和币种</li>
+          <li>完成法币转账</li>
+          <li>客服拨 PAYME</li>
+        </ol>
       </aside>
     </div>
   );

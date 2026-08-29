@@ -21,7 +21,7 @@ function normalizeUser(raw: string): string {
 export function parseCommand(input: string): ParsedCommand {
   const raw = input.trim();
   if (!raw) {
-    return { type: "unknown", raw, hint: "输入 /pay、/exchange、/chat 或 /support" };
+    return { type: "unknown", raw, hint: "输入 /pay 20 @luna" };
   }
 
   const body = stripPrefix(raw);
@@ -43,7 +43,7 @@ export function parseCommand(input: string): ParsedCommand {
   if (verb === "chat" || verb === "msg" || verb === "聊") {
     const username = normalizeUser(parts.slice(1).join(" "));
     if (!username) {
-      return { type: "unknown", raw, hint: "用法：/chat 用户名" };
+      return { type: "unknown", raw, hint: "用法：/chat @luna" };
     }
     return { type: "chat", username };
   }
@@ -51,24 +51,20 @@ export function parseCommand(input: string): ParsedCommand {
   if (verb === "add" || verb === "加" || verb === "好友") {
     const username = normalizeUser(parts.slice(1).join(" "));
     if (!username) {
-      return { type: "unknown", raw, hint: "用法：/add 用户名" };
+      return { type: "unknown", raw, hint: "用法：/add @kai" };
     }
     return { type: "add", username };
   }
 
   if (verb === "pay" || verb === "转" || verb === "付款") {
-    const paid = parsePayArgs(parts.slice(1), { allowUsernameFirst: true });
+    const paid = parsePayArgs(parts.slice(1));
     if (!paid) {
-      return { type: "unknown", raw, hint: "用法：/pay 20 to luna 或 /pay 20 luna [备注]" };
+      return { type: "unknown", raw, hint: "用法：/pay 20 @luna" };
     }
     return { type: "pay", ...paid };
   }
 
   if (verb === "exchange" || verb === "ex" || verb === "兑换") {
-    // /exchange 200 CNY          → 用 200 CNY 买入 PAYME
-    // /exchange 15 PAYME CNY     → 卖出 15 PAYME 换成 CNY
-    // /exchange buy 200 CNY
-    // /exchange sell 15 CNY
     const rest = parts.slice(1);
     if (rest[0]?.toLowerCase() === "buy" || rest[0] === "买") {
       const amount = parseAmount(rest[1] || "");
@@ -91,7 +87,7 @@ export function parseCommand(input: string): ParsedCommand {
     const second = (rest[1] || "").toUpperCase();
     const third = (rest[2] || "").toUpperCase();
     if (!amount) {
-      return { type: "unknown", raw, hint: "用法：/exchange 200 CNY 或 /exchange 15 PAYME CNY" };
+      return { type: "unknown", raw, hint: "用法：/exchange 200 CNY" };
     }
     if (second === "PAYME" || second === "Ᵽ" || second === "PM") {
       const currency = isFiat(third) ? third : "CNY";
@@ -100,19 +96,13 @@ export function parseCommand(input: string): ParsedCommand {
     if (isFiat(second)) {
       return { type: "exchange", amount, currency: second, side: "buy" };
     }
-    return { type: "unknown", raw, hint: "用法：/exchange 200 CNY 或 /exchange 15 PAYME CNY" };
-  }
-
-  // Bare "20 to luna lunch" from the command bar
-  const implicit = parsePayArgs(parts, { allowUsernameFirst: false, requireTo: true });
-  if (implicit) {
-    return { type: "pay", ...implicit };
+    return { type: "unknown", raw, hint: "用法：/exchange 200 CNY" };
   }
 
   return {
     type: "unknown",
     raw,
-    hint: "未知命令。试试 /pay 20 to luna、/exchange 200 CNY、/chat luna、/support",
+    hint: "未知命令。/pay 20 @luna  /exchange 200 CNY  /support",
   };
 }
 
@@ -123,67 +113,25 @@ function looksLikeUsername(raw: string): boolean {
   return /^[a-z0-9_]{2,16}$/.test(name);
 }
 
-function parsePayArgs(
-  args: string[],
-  opts: { allowUsernameFirst?: boolean; requireTo?: boolean } = {},
-): { amount: number; username: string; note: string } | null {
+/** Canonical: /pay (amount) @(username) [note] */
+function parsePayArgs(args: string[]): { amount: number; username: string; note: string } | null {
   const tokens = args.filter(Boolean);
-  if (!tokens.length) return null;
-
-  const toIndex = tokens.findIndex((t) => t.toLowerCase() === "to" || t === "给" || t === "to:");
-  if (toIndex >= 0) {
-    const before = tokens.slice(0, toIndex);
-    const after = tokens.slice(toIndex + 1);
-    const amountFromBefore = parseAmount(before[0] || "");
-    const amountFromAfter = parseAmount(after[0] || "");
-    if (amountFromBefore && looksLikeUsername(after[0] || "")) {
-      return {
-        amount: amountFromBefore,
-        username: normalizeUser(after[0]),
-        note: after.slice(1).join(" ").trim(),
-      };
-    }
-    if (amountFromAfter && looksLikeUsername(before[0] || "")) {
-      return {
-        amount: amountFromAfter,
-        username: normalizeUser(before[0]),
-        note: after.slice(1).join(" ").trim(),
-      };
-    }
-    return null;
-  }
-
-  if (opts.requireTo) return null;
-
-  const firstAmount = parseAmount(tokens[0] || "");
-  if (firstAmount && looksLikeUsername(tokens[1] || "")) {
-    return {
-      amount: firstAmount,
-      username: normalizeUser(tokens[1]),
-      note: tokens.slice(2).join(" ").trim(),
-    };
-  }
-
-  if (opts.allowUsernameFirst) {
-    const secondAmount = parseAmount(tokens[1] || "");
-    if (secondAmount && looksLikeUsername(tokens[0] || "")) {
-      return {
-        amount: secondAmount,
-        username: normalizeUser(tokens[0]),
-        note: tokens.slice(2).join(" ").trim(),
-      };
-    }
-  }
-
-  return null;
+  if (tokens.length < 2) return null;
+  const amount = parseAmount(tokens[0] || "");
+  if (!amount || !looksLikeUsername(tokens[1] || "")) return null;
+  return {
+    amount,
+    username: normalizeUser(tokens[1]),
+    note: tokens.slice(2).join(" ").trim(),
+  };
 }
 
 export const COMMAND_HELP = [
-  { cmd: "/pay 20 to luna 午饭", desc: "向用户名转账 Pay Me" },
-  { cmd: "/exchange 200 CNY", desc: "用人民币买入 Pay Me" },
-  { cmd: "/exchange 15 PAYME USD", desc: "把 Pay Me 兑成美元" },
-  { cmd: "/chat luna", desc: "按用户名打开私聊" },
-  { cmd: "/add kai", desc: "按用户名加朋友并聊天" },
-  { cmd: "/support", desc: "连接客服（管理员）兑钱" },
-  { cmd: "/sell", desc: "去拍卖上传照片出售" },
+  { cmd: "/pay 20 @luna", desc: "转账" },
+  { cmd: "/exchange 200 CNY", desc: "买入 PAYME" },
+  { cmd: "/exchange 15 PAYME USD", desc: "兑出法币" },
+  { cmd: "/chat @luna", desc: "私聊" },
+  { cmd: "/add @kai", desc: "加好友" },
+  { cmd: "/support", desc: "客服兑钱" },
+  { cmd: "/sell", desc: "上架拍卖" },
 ];

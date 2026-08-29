@@ -182,7 +182,7 @@ function ensureListingPhotos(database: Database.Database) {
     }
     if (paths.length) continue;
     const name = `seed-${row.id.slice(0, 8)}.svg`;
-    const accent = row.title.includes("相机") ? "#c4784a" : "#8fbf9f";
+    const accent = row.title.includes("相机") ? "#f7931a" : "#0ecb81";
     writeListingImage(name, row.title, accent);
     database.prepare("UPDATE listings SET image_paths = ? WHERE id = ?").run(JSON.stringify([name]), row.id);
   }

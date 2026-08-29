@@ -27,14 +27,16 @@ export function RateTicker() {
   const loop = [...pairs, ...pairs];
 
   return (
-    <div className="overflow-hidden border-y border-line bg-paper/70">
-      <div className="ticker flex w-max gap-8 py-2 font-mono text-[11px] tracking-wide text-muted">
+    <div className="overflow-hidden border-y border-line bg-paper">
+      <div className="ticker flex w-max gap-6 py-1.5 font-mono text-[11px] text-muted">
         {loop.map((p, i) => (
           <span key={`${p.code}-${i}`} className="flex items-center gap-2">
-            <span className="text-gold">{p.code}</span>
-            <span>1 = {p.paymePerUnit.toFixed(4)} Ᵽ</span>
-            <span className="text-ink/40">·</span>
-            <span>1 Ᵽ = {p.fiatPerPayme.toFixed(2)} {p.code}</span>
+            <span className="text-gold">{p.code}/PAYME</span>
+            <span className="text-moss">{p.paymePerUnit.toFixed(4)}</span>
+            <span className="text-ink/30">|</span>
+            <span>
+              1Ᵽ={p.fiatPerPayme.toFixed(2)} {p.code}
+            </span>
           </span>
         ))}
       </div>

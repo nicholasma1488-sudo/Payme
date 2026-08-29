@@ -9,9 +9,9 @@ import { formatPayme, SUPPORTED_FIAT } from "@/lib/money";
 import type { User } from "@/lib/types";
 
 const NAV = [
-  { href: "/home", label: "钱包" },
-  { href: "/exchange", label: "兑换" },
-  { href: "/auction", label: "拍卖" },
+  { href: "/home", label: "资产" },
+  { href: "/exchange", label: "交易" },
+  { href: "/auction", label: "市场" },
   { href: "/chat", label: "聊天" },
 ];
 
@@ -78,23 +78,24 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line bg-[#100e0b]/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/home" className="flex items-baseline gap-2">
-            <span className="font-display text-2xl tracking-tight text-gold">Pay Me</span>
-            <span className="hidden text-[11px] uppercase tracking-[0.22em] text-muted sm:inline">
-              朋友圈货币
+      <header className="border-b border-line bg-[#0b0e11]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
+          <Link href="/home" className="flex items-center gap-2">
+            <span className="inline-flex h-6 w-6 items-center justify-center bg-gold font-mono text-xs font-bold text-[#0b0e11]">
+              Ᵽ
             </span>
+            <span className="font-mono text-sm font-semibold tracking-wide text-ink">PAYME</span>
+            <span className="hidden font-mono text-[10px] text-muted sm:inline">/ 通用币市场</span>
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-0 md:flex">
             {items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-full px-3 py-1.5 text-sm ${
-                    active ? "bg-gold/15 text-gold" : "text-muted hover:text-ink"
+                  className={`border-b-2 px-3 py-2 font-mono text-xs ${
+                    active ? "border-gold text-gold" : "border-transparent text-muted hover:text-ink"
                   }`}
                 >
                   {item.label}
@@ -104,8 +105,8 @@ export function AppShell({
           </nav>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="font-mono text-sm text-gold">{formatPayme(balance)}</div>
-              <div className="text-[11px] text-muted">
+              <div className="font-mono text-sm text-moss">{formatPayme(balance)}</div>
+              <div className="font-mono text-[11px] text-muted">
                 {fiatPer != null
                   ? `≈ ${(balance * fiatPer).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} ${currency}`
                   : currency}
@@ -114,7 +115,7 @@ export function AppShell({
             <select
               value={currency}
               onChange={(e) => changeCurrency(e.target.value)}
-              className="rounded-full border border-line bg-paper px-2 py-1 text-[11px] text-muted"
+              className="field px-2 py-1 font-mono text-[11px] text-muted"
             >
               {SUPPORTED_FIAT.map((c) => (
                 <option key={c} value={c}>
@@ -122,9 +123,9 @@ export function AppShell({
                 </option>
               ))}
             </select>
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-[11px] text-ink">@{user.username}</span>
-              <button onClick={logout} className="text-[11px] text-muted hover:text-gold">
+            <div className="flex flex-col items-end">
+              <span className="font-mono text-[11px] text-ink">@{user.username}</span>
+              <button onClick={logout} className="font-mono text-[11px] text-muted hover:text-gold">
                 退出
               </button>
             </div>
@@ -133,10 +134,10 @@ export function AppShell({
         <RateTicker />
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-4">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">{children}</main>
 
       <nav
-        className={`grid border-t border-line bg-[#100e0b] md:hidden ${
+        className={`grid border-t border-line bg-[#0b0e11] md:hidden ${
           items.length > 4 ? "grid-cols-5" : "grid-cols-4"
         }`}
       >
@@ -144,7 +145,7 @@ export function AppShell({
           <Link
             key={item.href}
             href={item.href}
-            className={`py-3 text-center text-xs ${
+            className={`py-3 text-center font-mono text-[11px] ${
               pathname.startsWith(item.href) ? "text-gold" : "text-muted"
             }`}
           >

@@ -10,15 +10,12 @@ export default async function AuctionPage() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-copper">拍照即卖</p>
-          <h1 className="mt-2 font-display text-4xl">拍卖场</h1>
-          <p className="mt-2 text-muted">拍下手里的东西，朋友用 Pay Me 直接付款。</p>
+          <p className="font-mono text-xs text-gold">MARKET</p>
+          <h1 className="mt-1 text-2xl font-semibold">拍卖</h1>
+          <p className="mt-1 text-sm text-muted">拍照上架，PAYME 直接付款。</p>
         </div>
-        <Link
-          href="/auction/new"
-          className="rounded-full bg-gold px-4 py-2 text-sm font-medium text-[#1a1208]"
-        >
-          上架一件
+        <Link href="/auction/new" className="btn px-4 py-2 text-sm">
+          上架
         </Link>
       </div>
       <AuctionGrid listings={listings} myUsername={user?.username || ""} />

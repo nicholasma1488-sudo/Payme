@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const plex = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
+  weight: ["400", "500", "600"],
+  variable: "--font-plex",
 });
 
 const ibm = IBM_Plex_Mono({
@@ -19,16 +15,14 @@ const ibm = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pay Me · 朋友圈货币",
-  description: "给朋友用的 Pay Me 货币：命令栏转账、实时兑换、拍卖和客服。",
+  title: "PAYME · 内部市场",
+  description: "圈子通用币：命令转账、实时兑换、拍卖、客服。",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className={`${fraunces.variable} ${outfit.variable} ${ibm.variable} antialiased`}>
-        {children}
-      </body>
+      <body className={`${plex.variable} ${ibm.variable} antialiased`}>{children}</body>
     </html>
   );
 }

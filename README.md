@@ -1,6 +1,6 @@
-# Pay Me
+# PAYME
 
-给朋友圈用的私人货币。邮箱登录、用户名收款、命令栏转账、实时法币兑换、拍照拍卖，以及直连管理员的客服聊天。
+圈子内部通用币市场（不是链上比特币）。邮箱登录、`/pay 20 @luna` 转账、实时法币兑换、拍照拍卖、客服入账。
 
 ## 本地运行
 
@@ -28,10 +28,10 @@ npm run dev
 
 底部输入框，或 `Ctrl/Cmd + K` 聚焦。
 
-- `/pay 20 to luna 午饭` — 付给用户名（也支持 `/pay 20 luna`）
-- `/exchange 200 CNY` — 用人民币买入 Pay Me
-- `/exchange 15 PAYME USD` — 把 Pay Me 兑成美元
-- `/chat luna` 或 `/add kai` — 按用户名加朋友并打开私聊
+- `/pay 20 @luna` — 付给用户名
+- `/exchange 200 CNY` — 用人民币买入 PAYME
+- `/exchange 15 PAYME USD` — 把 PAYME 兑成美元
+- `/chat @luna` 或 `/add @kai` — 按用户名加朋友并打开私聊
 - `/support` — 连接管理员客服，可在聊天里申请兑钱
 - `/sell` — 去拍卖上架
 

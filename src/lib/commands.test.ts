@@ -3,9 +3,29 @@ import assert from "node:assert/strict";
 import { parseCommand } from "./commands";
 
 describe("parseCommand", () => {
-  it("parses pay with note", () => {
-    const cmd = parseCommand("/pay 20 luna lunch");
-    assert.deepEqual(cmd, {
+  it("parses /pay amount @username", () => {
+    assert.deepEqual(parseCommand("/pay 20 @luna"), {
+      type: "pay",
+      amount: 20,
+      username: "luna",
+      note: "",
+    });
+    assert.deepEqual(parseCommand("/pay 20 @luna lunch"), {
+      type: "pay",
+      amount: 20,
+      username: "luna",
+      note: "lunch",
+    });
+    assert.deepEqual(parseCommand("pay 15 @kai"), {
+      type: "pay",
+      amount: 15,
+      username: "kai",
+      note: "",
+    });
+  });
+
+  it("parses pay without @ as fallback", () => {
+    assert.deepEqual(parseCommand("/pay 20 luna lunch"), {
       type: "pay",
       amount: 20,
       username: "luna",
@@ -28,28 +48,7 @@ describe("parseCommand", () => {
     assert.deepEqual(parseCommand("support"), { type: "support" });
   });
 
-  it("parses pay 20 to username", () => {
-    assert.deepEqual(parseCommand("pay 20 to luna lunch"), {
-      type: "pay",
-      amount: 20,
-      username: "luna",
-      note: "lunch",
-    });
-    assert.deepEqual(parseCommand("20 to @kai"), {
-      type: "pay",
-      amount: 20,
-      username: "kai",
-      note: "",
-    });
-    assert.deepEqual(parseCommand("/pay luna 15 电影"), {
-      type: "pay",
-      amount: 15,
-      username: "luna",
-      note: "电影",
-    });
-  });
-
   it("parses add friend", () => {
-    assert.deepEqual(parseCommand("/add nova"), { type: "add", username: "nova" });
+    assert.deepEqual(parseCommand("/add @nova"), { type: "add", username: "nova" });
   });
 });
