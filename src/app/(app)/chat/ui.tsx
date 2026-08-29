@@ -178,7 +178,7 @@ export function ChatClient() {
   async function resolveRequest(id: string, action: "fill" | "reject") {
     setError(null);
     const res = await fetch("/api/exchange/request", {
-      method: "PATCH",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action }),
     });

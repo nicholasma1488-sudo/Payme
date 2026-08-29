@@ -34,12 +34,17 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
     const body = (await req.json()) as {
+      id?: string;
+      action?: "fill" | "reject";
       side?: "buy" | "sell";
       amount?: number;
       currency?: string;
       note?: string;
       conversationId?: string;
     };
+    if (body.id && (body.action === "fill" || body.action === "reject")) {
+      return fulfillRequest(user, body.id, body.action);
+    }
     const side = body.side === "sell" ? "sell" : "buy";
     const amount = Number(body.amount);
     const currency = (body.currency || "CNY").toUpperCase();
@@ -75,33 +80,39 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser();
-    if (user.role !== "admin") throw Object.assign(new Error("仅管理员"), { status: 403 });
     const body = (await req.json()) as { id?: string; action?: "fill" | "reject" };
-    if (!body.id) throw new Error("缺少申请");
-    const request = getExchangeRequest(body.id);
-    if (!request) throw new Error("申请不存在");
-    if (request.status !== "pending") throw new Error("这单已经处理过了");
-
-    if (body.action === "reject") {
-      setExchangeRequestStatus(request.id, "rejected");
-      if (request.conversationId) {
-        sendMessage(request.conversationId, user.id, `[兑换申请] 已拒绝 @${request.username} 的申请`);
-      }
-      return NextResponse.json({ request: getExchangeRequest(request.id) });
+    if (!body.id || (body.action !== "fill" && body.action !== "reject")) {
+      throw new Error("缺少申请");
     }
-
-    const result = await executeExchange({
-      userId: request.userId,
-      side: request.side,
-      amount: request.amount,
-      currency: request.currency,
-    });
-    setExchangeRequestStatus(request.id, "filled");
-    if (request.conversationId) {
-      sendMessage(request.conversationId, user.id, `[兑换申请] 已入账：${result.message}`);
-    }
-    return NextResponse.json({ request: getExchangeRequest(request.id), result });
+    return fulfillRequest(user, body.id, body.action);
   } catch (error) {
     return jsonError(error);
   }
+}
+
+async function fulfillRequest(user: { id: string; role: string }, id: string, action: "fill" | "reject") {
+  if (user.role !== "admin") throw Object.assign(new Error("仅管理员"), { status: 403 });
+  const request = getExchangeRequest(id);
+  if (!request) throw new Error("申请不存在");
+  if (request.status !== "pending") throw new Error("这单已经处理过了");
+
+  if (action === "reject") {
+    setExchangeRequestStatus(request.id, "rejected");
+    if (request.conversationId) {
+      sendMessage(request.conversationId, user.id, `[兑换申请] 已拒绝 @${request.username} 的申请`);
+    }
+    return NextResponse.json({ request: getExchangeRequest(request.id) });
+  }
+
+  const result = await executeExchange({
+    userId: request.userId,
+    side: request.side,
+    amount: request.amount,
+    currency: request.currency,
+  });
+  setExchangeRequestStatus(request.id, "filled");
+  if (request.conversationId) {
+    sendMessage(request.conversationId, user.id, `[兑换申请] 已入账：${result.message}`);
+  }
+  return NextResponse.json({ request: getExchangeRequest(request.id), result });
 }
