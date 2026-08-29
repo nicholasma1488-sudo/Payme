@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { currentUser } from "@/lib/auth";
 import { listListings } from "@/lib/db";
 import { AuctionGrid } from "./ui";
 
-export default function AuctionPage() {
+export default async function AuctionPage() {
+  const user = await currentUser();
   const listings = listListings();
   return (
     <div>
@@ -19,7 +21,7 @@ export default function AuctionPage() {
           上架一件
         </Link>
       </div>
-      <AuctionGrid listings={listings} />
+      <AuctionGrid listings={listings} myUsername={user?.username || ""} />
     </div>
   );
 }

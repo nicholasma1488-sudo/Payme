@@ -5,7 +5,13 @@ import { useState } from "react";
 import type { Listing } from "@/lib/types";
 import { Flash } from "@/components/Flash";
 
-export function AuctionGrid({ listings }: { listings: Listing[] }) {
+export function AuctionGrid({
+  listings,
+  myUsername,
+}: {
+  listings: Listing[];
+  myUsername: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -55,7 +61,11 @@ export function AuctionGrid({ listings }: { listings: Listing[] }) {
                   @{item.sellerUsername}
                   {item.status === "sold" ? ` · 已被 @${item.buyerUsername} 买走` : ""}
                 </p>
-                {item.status === "active" ? (
+                {item.status === "sold" ? (
+                  <div className="rounded-2xl border border-line py-2 text-center text-sm text-muted">已售出</div>
+                ) : item.sellerUsername === myUsername ? (
+                  <div className="rounded-2xl border border-line py-2 text-center text-sm text-muted">你的商品</div>
+                ) : (
                   <button
                     disabled={busyId === item.id}
                     onClick={() => buy(item.id)}
@@ -63,8 +73,6 @@ export function AuctionGrid({ listings }: { listings: Listing[] }) {
                   >
                     {busyId === item.id ? "付款中…" : "直接付款"}
                   </button>
-                ) : (
-                  <div className="rounded-2xl border border-line py-2 text-center text-sm text-muted">已售出</div>
                 )}
               </div>
             </article>
