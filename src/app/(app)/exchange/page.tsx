@@ -151,7 +151,7 @@ export default function ExchangePage() {
       <aside className="panel p-5">
         <h2 className="font-mono text-sm">OTC / @admin</h2>
         <p className="mt-2 text-sm text-muted">
-          客服和兑钱都发给 @admin。工作日 15:30 前预约，金库有初始流动性。
+          客服和兑钱都发给 @admin。只收当面现金，不走支付宝/微信。工作日 15:30 前预约。
         </p>
         <button onClick={openSupport} className="btn-ghost mt-5 w-full py-2.5 text-sm">
           发消息给 admin

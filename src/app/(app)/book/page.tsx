@@ -64,8 +64,8 @@ export default function BookPage() {
         <p className="font-mono text-xs text-gold">OTC · @admin</p>
         <h1 className="mt-1 text-2xl font-semibold">兑换预约</h1>
         <p className="mt-2 text-sm text-muted">
-          发给管理员 @admin（Nicholas_mzy14@hotmail.com）。每个工作日 <span className="text-gold">15:30</span>{" "}
-          截止（南澳时间）。之后和下班/周末约下一个工作日。金库有初始流动性，谈妥后入账。
+          发给管理员 @admin。只收当面现金，不走支付宝/微信。每个工作日{" "}
+          <span className="text-gold">15:30</span> 截止（南澳时间）。之后和下班/周末约下一个工作日。
         </p>
         <form onSubmit={submit} className="mt-5 space-y-3">
           <div className="flex gap-2">
@@ -120,7 +120,7 @@ export default function BookPage() {
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="备注（微信/支付宝）"
+            placeholder="见面地点（只收现金）"
             className="field w-full px-3 py-2"
           />
           <Flash text={error} tone="err" />

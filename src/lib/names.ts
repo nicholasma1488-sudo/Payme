@@ -24,4 +24,4 @@ export function hasLegalName(person: {
   return Boolean(person.firstName?.trim() && person.lastName?.trim());
 }
 
-export const CASH_MEETUP_PROMPT = "这次兑换预约，你希望在哪里当面用现金兑换？";
+export const CASH_MEETUP_PROMPT = "这次兑换只收现金，不走支付宝/微信。你希望在哪里当面交现金？";
