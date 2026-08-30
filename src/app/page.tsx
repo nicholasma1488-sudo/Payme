@@ -17,8 +17,13 @@ export default function LandingPage() {
     fetch("/api/auth/me").then(async (res) => {
       if (!res.ok) return;
       const data = await res.json();
-      if (data.user?.username) router.replace("/home");
-      else if (data.user) router.replace("/onboard");
+      if (data.user?.username && data.user.firstName && data.user.lastName) {
+        router.replace("/home");
+      } else if (data.user?.username) {
+        router.replace("/onboard/name");
+      } else if (data.user) {
+        router.replace("/onboard");
+      }
     });
   }, [router]);
 
@@ -37,7 +42,13 @@ export default function LandingPage() {
         setError(data.error || "失败");
         return;
       }
-      router.push(data.user?.username ? "/home" : "/onboard");
+      router.push(
+        data.user?.username && data.user.firstName && data.user.lastName
+          ? "/home"
+          : data.user?.username
+            ? "/onboard/name"
+            : "/onboard",
+      );
     } catch {
       setError("网络出错了");
     } finally {

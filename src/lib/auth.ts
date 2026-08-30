@@ -22,6 +22,8 @@ export function publicUser(user: User) {
     email: user.email,
     username: user.username,
     displayName: user.displayName,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
     balancePayme: user.balancePayme,
     displayCurrency: user.displayCurrency,

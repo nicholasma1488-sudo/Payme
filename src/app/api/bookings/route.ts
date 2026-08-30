@@ -10,6 +10,7 @@ import {
 import {
   bookingCountsByDate,
   createBooking,
+  findUserById,
   findUserByUsername,
   getOrCreateSupport,
   listBookings,
@@ -17,6 +18,7 @@ import {
   setBookingStatus,
 } from "@/lib/db";
 import { isFiat } from "@/lib/money";
+import { formatLegalName } from "@/lib/names";
 
 export async function GET(req: NextRequest) {
   try {
@@ -99,11 +101,13 @@ export async function POST(req: NextRequest) {
     });
 
     const convId = getOrCreateSupport(userId || user.id);
+    const booked = userId ? findUserById(userId) : findUserByUsername(username);
+    const legal = formatLegalName(booked || user);
     const label = side === "buy" ? `买入 ${amount} ${currency}` : `兑出 ${amount} Ᵽ → ${currency}`;
     sendMessage(
       convId,
       user.id,
-      `[兑换预约] @${username} ${slotDate} ${slotTime} ${label}${body.note ? ` · ${body.note}` : ""}`,
+      `[兑换预约] ${legal ? `${legal} ` : ""}@${username} ${slotDate} ${slotTime} ${label}${body.note ? ` · ${body.note}` : ""}`,
     );
 
     return NextResponse.json({

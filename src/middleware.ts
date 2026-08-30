@@ -23,6 +23,7 @@ export const config = {
     "/auction/:path*",
     "/chat/:path*",
     "/admin/:path*",
+    "/onboard",
     "/onboard/:path*",
     "/book/:path*",
   ],

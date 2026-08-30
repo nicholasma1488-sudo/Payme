@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ExchangeBooking } from "@/lib/types";
 import { Flash } from "@/components/Flash";
 import { formatPayme, SUPPORTED_FIAT } from "@/lib/money";
+import { formatLegalName } from "@/lib/names";
 
 export function BookingsAdmin({
   date,
@@ -31,6 +32,7 @@ export function BookingsAdmin({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
 
   const pending = bookings.filter((b) => b.status === "pending").length;
 
@@ -69,6 +71,26 @@ export function BookingsAdmin({
       body: JSON.stringify({ id, status }),
     });
     router.refresh();
+  }
+
+  async function openChat(booking: ExchangeBooking) {
+    setError(null);
+    setOpening(booking.id);
+    try {
+      const res = await fetch("/api/chat/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: booking.username }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "打不开聊天");
+        return;
+      }
+      router.push(`/chat?c=${data.conversationId}&ask=cash`);
+    } finally {
+      setOpening(null);
+    }
   }
 
   return (
@@ -117,35 +139,55 @@ export function BookingsAdmin({
           {date} · {bookings.length} 人
         </h2>
         {bookings.length === 0 && <p className="px-5 py-8 text-sm text-muted">这一天还没有预约</p>}
-        {bookings.map((b) => (
-          <div
-            key={b.id}
-            className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3"
-          >
-            <div>
-              <div className="font-mono text-sm text-gold">
-                {b.slotTime} · @{b.username}
-              </div>
-              <div className="text-xs text-muted">
-                {b.side === "buy" ? "买入" : "兑出"} {b.amount} {b.side === "buy" ? b.currency : "Ᵽ"} · {b.status}
-                {b.note ? ` · ${b.note}` : ""}
+        {bookings.map((b) => {
+          const legal = formatLegalName(b);
+          return (
+            <div
+              key={b.id}
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3"
+            >
+              <button type="button" onClick={() => openChat(b)} className="min-w-0 flex-1 text-left">
+                <div className="text-sm text-ink">{legal || "未登记真名"}</div>
+                <div className="font-mono text-sm text-gold">
+                  {b.slotTime} · @{b.username}
+                </div>
+                <div className="text-xs text-muted">
+                  {b.side === "buy" ? "买入" : "兑出"} {b.amount} {b.side === "buy" ? b.currency : "Ᵽ"} ·{" "}
+                  {b.status}
+                  {b.note ? ` · ${b.note}` : ""}
+                </div>
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openChat(b)}
+                  disabled={opening === b.id}
+                  className="btn px-2 py-1 text-xs"
+                >
+                  {opening === b.id ? "..." : "问兑换地点"}
+                </button>
+                {b.status === "pending" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setStatus(b.id, "done")}
+                      className="border border-line px-2 py-1 text-xs text-moss"
+                    >
+                      完成
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStatus(b.id, "cancelled")}
+                      className="border border-line px-2 py-1 text-xs text-muted"
+                    >
+                      取消
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-            {b.status === "pending" && (
-              <div className="flex gap-2">
-                <button onClick={() => setStatus(b.id, "done")} className="btn px-2 py-1 text-xs">
-                  完成
-                </button>
-                <button
-                  onClick={() => setStatus(b.id, "cancelled")}
-                  className="border border-line px-2 py-1 text-xs text-muted"
-                >
-                  取消
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       <section className="panel p-5">

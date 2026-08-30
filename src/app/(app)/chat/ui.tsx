@@ -4,12 +4,14 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Flash } from "@/components/Flash";
 import { SUPPORTED_FIAT } from "@/lib/money";
+import { CASH_MEETUP_PROMPT } from "@/lib/names";
 import type { ChatMessage, Conversation, ExchangeRequest } from "@/lib/types";
 
 export function ChatClient() {
   const params = useSearchParams();
   const router = useRouter();
   const selected = params.get("c");
+  const ask = params.get("ask");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [me, setMe] = useState<string | null>(null);
@@ -39,6 +41,12 @@ export function ChatClient() {
       });
     refreshConvos();
   }, []);
+
+  useEffect(() => {
+    if (ask === "cash") {
+      setDraft(CASH_MEETUP_PROMPT);
+    }
+  }, [ask, selected]);
 
   useEffect(() => {
     if (!selected) return;

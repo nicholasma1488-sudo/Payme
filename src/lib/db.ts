@@ -35,6 +35,7 @@ export function getDb(): Database.Database {
   migrate(db);
   seed(db);
   ensureAdminAccount(db);
+  ensureLegalNames(db);
   ensureDefaults(db);
   ensureListingPhotos(db);
   return db;
@@ -70,6 +71,8 @@ function migrate(database: Database.Database) {
       password_hash TEXT NOT NULL,
       username TEXT UNIQUE,
       display_name TEXT,
+      first_name TEXT,
+      last_name TEXT,
       role TEXT NOT NULL DEFAULT 'user',
       balance_payme REAL NOT NULL DEFAULT 0,
       display_currency TEXT NOT NULL DEFAULT 'CNY',
@@ -172,6 +175,14 @@ function migrate(database: Database.Database) {
       created_by TEXT NOT NULL DEFAULT 'user'
     );
   `);
+  addColumn(database, "users", "first_name", "TEXT");
+  addColumn(database, "users", "last_name", "TEXT");
+}
+
+function addColumn(database: Database.Database, table: string, column: string, def: string) {
+  const cols = database.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (cols.some((c) => c.name === column)) return;
+  database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
 }
 
 function ensureAdminAccount(database: Database.Database) {
@@ -192,9 +203,26 @@ function ensureAdminAccount(database: Database.Database) {
   }
   database
     .prepare(
-      "UPDATE users SET email = ?, password_hash = ?, username = ?, display_name = ? WHERE id = ?",
+      "UPDATE users SET email = ?, password_hash = ?, username = ?, display_name = ?, first_name = COALESCE(first_name, ?), last_name = COALESCE(last_name, ?) WHERE id = ?",
     )
-    .run(ADMIN_EMAIL, hash, ADMIN_USERNAME, ADMIN_DISPLAY, admin.id);
+    .run(ADMIN_EMAIL, hash, ADMIN_USERNAME, ADMIN_DISPLAY, "Nicholas", "Ma", admin.id);
+}
+
+function ensureLegalNames(database: Database.Database) {
+  const defaults: { username: string; first: string; last: string }[] = [
+    { username: ADMIN_USERNAME, first: "Nicholas", last: "Ma" },
+    { username: "luna", first: "Luna", last: "Chen" },
+    { username: "kai", first: "Kai", last: "Rivera" },
+    { username: "nova", first: "Nova", last: "Kim" },
+  ];
+  const update = database.prepare(
+    `UPDATE users SET first_name = ?, last_name = ?
+     WHERE lower(username) = lower(?)
+       AND (first_name IS NULL OR trim(first_name) = '' OR last_name IS NULL OR trim(last_name) = '')`,
+  );
+  for (const row of defaults) {
+    update.run(row.first, row.last, row.username);
+  }
 }
 
 function writeListingImage(filename: string, title: string, accent: string) {
@@ -247,8 +275,8 @@ function seed(database: Database.Database) {
   const novaId = crypto.randomUUID();
 
   const insertUser = database.prepare(`
-    INSERT INTO users (id, email, password_hash, username, display_name, role, balance_payme, display_currency, created_at)
-    VALUES (@id, @email, @password_hash, @username, @display_name, @role, @balance_payme, @display_currency, @created_at)
+    INSERT INTO users (id, email, password_hash, username, display_name, first_name, last_name, role, balance_payme, display_currency, created_at)
+    VALUES (@id, @email, @password_hash, @username, @display_name, @first_name, @last_name, @role, @balance_payme, @display_currency, @created_at)
   `);
 
   insertUser.run({
@@ -257,6 +285,8 @@ function seed(database: Database.Database) {
     password_hash: bcrypt.hashSync(ADMIN_PASSWORD, 10),
     username: ADMIN_USERNAME,
     display_name: ADMIN_DISPLAY,
+    first_name: "Nicholas",
+    last_name: "Ma",
     role: "admin",
     balance_payme: PLANNED_TREASURY,
     display_currency: "CNY",
@@ -269,6 +299,8 @@ function seed(database: Database.Database) {
     password_hash: bcrypt.hashSync("friends123", 10),
     username: "luna",
     display_name: "Luna",
+    first_name: "Luna",
+    last_name: "Chen",
     role: "user",
     balance_payme: 420,
     display_currency: "CNY",
@@ -281,6 +313,8 @@ function seed(database: Database.Database) {
     password_hash: bcrypt.hashSync("friends123", 10),
     username: "kai",
     display_name: "Kai",
+    first_name: "Kai",
+    last_name: "Rivera",
     role: "user",
     balance_payme: 880,
     display_currency: "USD",
@@ -293,6 +327,8 @@ function seed(database: Database.Database) {
     password_hash: bcrypt.hashSync("friends123", 10),
     username: "nova",
     display_name: "Nova",
+    first_name: "Nova",
+    last_name: "Kim",
     role: "user",
     balance_payme: 260,
     display_currency: "CNY",
@@ -384,6 +420,8 @@ function mapUser(row: Record<string, unknown>): User {
     email: String(row.email),
     username: (row.username as string | null) ?? null,
     displayName: (row.display_name as string | null) ?? null,
+    firstName: (row.first_name as string | null) ?? null,
+    lastName: (row.last_name as string | null) ?? null,
     role: row.role === "admin" ? "admin" : "user",
     balancePayme: Number(row.balance_payme),
     displayCurrency: String(row.display_currency || "CNY"),
@@ -429,6 +467,15 @@ export function setUsername(userId: string, username: string, displayName: strin
   getDb()
     .prepare("UPDATE users SET username = ?, display_name = ? WHERE id = ?")
     .run(username, displayName, userId);
+}
+
+export function setLegalName(userId: string, firstName: string, lastName: string): User {
+  getDb()
+    .prepare("UPDATE users SET first_name = ?, last_name = ? WHERE id = ?")
+    .run(firstName, lastName, userId);
+  const user = findUserById(userId);
+  if (!user) throw new Error("用户不存在");
+  return user;
 }
 
 export function setDisplayCurrency(userId: string, currency: string) {
@@ -1008,11 +1055,22 @@ export function setExchangeRequestStatus(id: string, status: "filled" | "rejecte
     .run(status, Date.now(), id);
 }
 
+const BOOKING_SELECT = `
+  SELECT b.*,
+         COALESCE(u.first_name, u2.first_name) AS first_name,
+         COALESCE(u.last_name, u2.last_name) AS last_name
+  FROM exchange_bookings b
+  LEFT JOIN users u ON u.id = b.user_id
+  LEFT JOIN users u2 ON lower(u2.username) = lower(b.username)
+`;
+
 function mapBooking(row: Record<string, unknown>): ExchangeBooking {
   return {
     id: String(row.id),
     userId: (row.user_id as string | null) ?? null,
     username: String(row.username),
+    firstName: (row.first_name as string | null) ?? null,
+    lastName: (row.last_name as string | null) ?? null,
     slotDate: String(row.slot_date),
     slotTime: String(row.slot_time),
     side: row.side === "sell" ? "sell" : "buy",
@@ -1061,9 +1119,9 @@ export function createBooking(params: {
 }
 
 export function getBooking(id: string): ExchangeBooking | null {
-  const row = getDb().prepare("SELECT * FROM exchange_bookings WHERE id = ?").get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const row = getDb()
+    .prepare(`${BOOKING_SELECT} WHERE b.id = ?`)
+    .get(id) as Record<string, unknown> | undefined;
   return row ? mapBooking(row) : null;
 }
 
@@ -1071,12 +1129,10 @@ export function listBookings(slotDate?: string): ExchangeBooking[] {
   const rows = (
     slotDate
       ? getDb()
-          .prepare(
-            "SELECT * FROM exchange_bookings WHERE slot_date = ? ORDER BY slot_time ASC, created_at ASC",
-          )
+          .prepare(`${BOOKING_SELECT} WHERE b.slot_date = ? ORDER BY b.slot_time ASC, b.created_at ASC`)
           .all(slotDate)
       : getDb()
-          .prepare("SELECT * FROM exchange_bookings ORDER BY slot_date ASC, slot_time ASC")
+          .prepare(`${BOOKING_SELECT} ORDER BY b.slot_date ASC, b.slot_time ASC`)
           .all()
   ) as Record<string, unknown>[];
   return rows.map(mapBooking);

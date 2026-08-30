@@ -5,6 +5,8 @@ export type User = {
   email: string;
   username: string | null;
   displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
   role: Role;
   balancePayme: number;
   displayCurrency: string;
@@ -15,6 +17,8 @@ export type PublicUser = {
   id: string;
   username: string;
   displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
   role: Role;
 };
 
@@ -83,6 +87,8 @@ export type ExchangeBooking = {
   id: string;
   userId: string | null;
   username: string;
+  firstName: string | null;
+  lastName: string | null;
   slotDate: string;
   slotTime: string;
   side: "buy" | "sell";
