@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       booking,
-      message: `已预约 ${slotDate} ${slotTime}，消息已发给 @admin`,
+      message: `已预约 ${slotDate} ${slotTime} 当面现金兑换，消息已发给 @admin`,
     });
   } catch (error) {
     return jsonError(error);

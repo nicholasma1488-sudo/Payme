@@ -51,7 +51,7 @@ export default function LegalNamePage() {
       <p className="font-mono text-xs text-gold">SETUP · 2/2</p>
       <h1 className="mt-2 text-3xl font-semibold">真实姓名</h1>
       <p className="mt-2 text-sm text-muted">
-        预约兑换后，管理员日历会显示你的 First / Last name。兑换只收当面现金，不走支付宝/微信。
+        预约兑换后，管理员日历会显示你的 First / Last name。兑换只收当面现金。
       </p>
       <form onSubmit={submit} className="mt-8 space-y-4">
         <div>

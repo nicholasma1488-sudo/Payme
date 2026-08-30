@@ -64,14 +64,18 @@ export async function POST(req: NextRequest) {
     });
     const label =
       side === "buy"
-        ? `想用 ${amount} ${currency} 买入 Pay Me`
-        : `想卖出 ${amount} Ᵽ 换成 ${currency}`;
+        ? `想当面用现金 ${amount} ${currency} 买入 Pay Me`
+        : `想当面交出现金，卖出 ${amount} Ᵽ 换成 ${currency}`;
     sendMessage(
       conversationId,
       user.id,
-      `[兑换申请] ${label}${body.note ? ` · ${body.note}` : ""}`,
+      `[现金兑换] ${label}${body.note ? ` · ${body.note}` : ""}`,
     );
-    return NextResponse.json({ request, conversationId, message: "已发给客服，等管理员入账" });
+    return NextResponse.json({
+      request,
+      conversationId,
+      message: "已发给管理员。当面交现金后才会入账。",
+    });
   } catch (error) {
     return jsonError(error);
   }

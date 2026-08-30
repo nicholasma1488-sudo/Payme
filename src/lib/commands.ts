@@ -133,11 +133,11 @@ function parsePayArgs(args: string[]): { amount: number; username: string; note:
 
 export const COMMAND_HELP = [
   { cmd: "/pay 20 @luna", desc: "转账" },
-  { cmd: "/exchange 200 CNY", desc: "买入 PAYME" },
-  { cmd: "/exchange 15 PAYME USD", desc: "兑出法币" },
+  { cmd: "/exchange 200 CNY", desc: "预约当面现金买入" },
+  { cmd: "/exchange 15 PAYME USD", desc: "预约当面现金兑出" },
   { cmd: "/chat @luna", desc: "私聊" },
   { cmd: "/add @kai", desc: "加好友" },
   { cmd: "/support", desc: "私信 @admin 客服" },
-  { cmd: "/book", desc: "兑换预约（工作日 15:30）" },
+  { cmd: "/book", desc: "现金兑换预约（工作日 15:30）" },
   { cmd: "/sell", desc: "上架拍卖" },
 ];

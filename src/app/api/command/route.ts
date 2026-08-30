@@ -8,7 +8,6 @@ import {
   getOrCreateSupport,
   transferPayme,
 } from "@/lib/db";
-import { executeExchange } from "@/lib/exchange";
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,18 +70,17 @@ export async function POST(req: NextRequest) {
       });
     }
     if (parsed.type === "exchange") {
-      const result = await executeExchange({
-        userId: user.id,
+      const q = new URLSearchParams({
         side: parsed.side,
-        amount: parsed.amount,
+        amount: String(parsed.amount),
         currency: parsed.currency,
       });
       return NextResponse.json({
         ok: true,
         parsed,
-        action: "exchanged",
-        message: result.message,
-        result,
+        action: "navigate",
+        href: `/book?${q.toString()}`,
+        message: "兑换只收当面现金，请预约见面时间",
       });
     }
 

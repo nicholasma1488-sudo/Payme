@@ -83,7 +83,7 @@ export async function executeExchange(params: {
 
   const reserve = Number(getSetting("cny_reserve", "0"));
   if (reserve < quote.cny) {
-    throw new Error("金库法币准备金不足，请联系客服线下兑付");
+    throw new Error("金库现金准备金不足，请改约见面兑换");
   }
   const tx = transferPayme({
     fromUserId: user.id,

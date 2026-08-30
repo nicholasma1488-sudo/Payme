@@ -5,6 +5,12 @@ import { executeExchange } from "@/lib/exchange";
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    if (user.role !== "admin") {
+      throw Object.assign(
+        new Error("兑换只收当面现金。请先预约见面，交出现金后再由管理员入账。"),
+        { status: 400 },
+      );
+    }
     const body = (await req.json()) as {
       side?: "buy" | "sell";
       amount?: number;

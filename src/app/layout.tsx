@@ -16,7 +16,7 @@ const ibm = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "PAYME · 内部市场",
-  description: "圈子通用币：命令转账、实时兑换、拍卖、客服。",
+  description: "圈子通用币：命令转账、当面现金兑换、拍卖、客服。",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

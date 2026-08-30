@@ -99,7 +99,7 @@ export function BookingsAdmin({
         <p className="font-mono text-xs text-gold">BOOKINGS · @admin</p>
         <h1 className="mt-1 text-2xl font-semibold">兑换预约</h1>
         <p className="mt-2 text-sm text-muted">
-          当面现金兑换，不走支付宝/微信。工作日 15:30 截止。点开人名即可问见面地点。金库{" "}
+          只收当面现金。工作日 15:30 截止。点开人名即可问见面地点。金库{" "}
           {formatPayme(treasury.treasuryPayme)} / 规划 {formatPayme(treasury.plannedTreasury)}。
         </p>
       </div>

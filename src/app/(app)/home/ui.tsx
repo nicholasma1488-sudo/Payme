@@ -77,7 +77,7 @@ export function HomeClient({
             <span className="mt-1 block text-gold">/pay 20 @luna</span>
           </div>
           <div className="border border-line bg-bg p-3">
-            兑换
+            现金兑换
             <span className="mt-1 block text-gold">/exchange 200 CNY</span>
           </div>
           <div className="border border-line bg-bg p-3">

@@ -239,7 +239,7 @@ export function ChatClient() {
         <div className="border-b border-line px-5 py-4">
           <div className="font-mono text-sm">{current?.title || "选择对话"}</div>
           <p className="text-xs text-muted">
-            {current?.type === "support" ? "管理员 / 兑钱" : "/pay 金额 @用户名"}
+            {current?.type === "support" ? "管理员 / 当面现金兑换" : "/pay 金额 @用户名"}
           </p>
         </div>
         {current?.type === "dm" && current.otherUsername && (
@@ -276,7 +276,7 @@ export function ChatClient() {
             <input
               value={exAmount}
               onChange={(e) => setExAmount(e.target.value)}
-              placeholder={exSide === "buy" ? "法币金额" : "PAYME"}
+              placeholder={exSide === "buy" ? "现金金额" : "PAYME"}
               className="field px-3 py-2 font-mono text-sm"
             />
             <select
@@ -290,7 +290,7 @@ export function ChatClient() {
                 </option>
               ))}
             </select>
-            <button className="btn-ghost px-3 text-xs">兑钱</button>
+            <button className="btn-ghost px-3 text-xs">现金兑换</button>
           </form>
         )}
         {role === "admin" && requests.length > 0 && (

@@ -78,7 +78,7 @@ export default function LandingPage() {
             像交易所一样用
           </h1>
           <p className="mt-4 max-w-md text-sm text-muted">
-            不是真正的比特币。PAYME 是你们自己的通用货币，用法币按实时汇率兑进兑出。命令转账、拍照上架、客服入账。
+            不是真正的比特币。PAYME 是圈子里的通用币。朋友之间用命令转账；兑进兑出只收当面现金。
           </p>
           <div className="mt-6 border border-gold/30 bg-paper px-4 py-3 font-mono text-sm text-gold">
             /pay 20 @luna
@@ -86,7 +86,7 @@ export default function LandingPage() {
           <ul className="mt-5 space-y-1 font-mono text-xs text-muted">
             <li>70 人金库流动性</li>
             <li>CNY / USD / EUR 实时牌价</li>
-            <li>/support 找管理员兑钱</li>
+            <li>/book 预约当面现金兑换</li>
           </ul>
         </div>
 

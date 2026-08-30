@@ -34,8 +34,8 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
     else if (parsed.type === "exchange") {
       setHint(
         parsed.side === "buy"
-          ? `BUY ${parsed.amount} ${parsed.currency} → PAYME`
-          : `SELL ${parsed.amount} Ᵽ → ${parsed.currency}`,
+          ? `CASH BOOK 买入 ${parsed.amount} ${parsed.currency}`
+          : `CASH BOOK 兑出 ${parsed.amount} Ᵽ`,
       );
     } else if (parsed.type === "chat") setHint(`CHAT @${parsed.username}`);
     else if (parsed.type === "add") setHint(`ADD @${parsed.username}`);

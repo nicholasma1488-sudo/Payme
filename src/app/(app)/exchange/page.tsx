@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Flash } from "@/components/Flash";
+import { CASH_ONLY_NOTE } from "@/lib/names";
 import { SUPPORTED_FIAT } from "@/lib/money";
 
 type Quote = {
@@ -20,9 +21,7 @@ export default function ExchangePage() {
   const [amount, setAmount] = useState("200");
   const [currency, setCurrency] = useState("CNY");
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -37,34 +36,21 @@ export default function ExchangePage() {
         body: JSON.stringify({ side, amount: n, currency }),
       });
       const data = await res.json();
-      if (res.ok) setQuote(data.quote);
+      if (res.ok) {
+        setQuote(data.quote);
+        setError(null);
+      } else {
+        setQuote(null);
+        setError(data.error || "报价失败");
+      }
     }, 250);
     return () => clearTimeout(t);
   }, [side, amount, currency]);
 
-  async function submit(e: FormEvent) {
+  function bookCash(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/exchange/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ side, amount: Number(amount), currency }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "兑换失败");
-        return;
-      }
-      setMessage(data.message);
-      router.refresh();
-    } catch {
-      setError("网络出错了");
-    } finally {
-      setBusy(false);
-    }
+    const q = new URLSearchParams({ side, amount, currency });
+    router.push(`/book?${q.toString()}`);
   }
 
   async function openSupport() {
@@ -80,11 +66,13 @@ export default function ExchangePage() {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
       <section className="panel p-5">
-        <p className="font-mono text-xs text-gold">SPOT · PAYME</p>
+        <p className="font-mono text-xs text-gold">SPOT · CASH ONLY</p>
         <h1 className="mt-1 text-2xl font-semibold">交易</h1>
-        <p className="mt-2 text-sm text-muted">法币 ↔ PAYME。默认 1 Ᵽ = 10 CNY，牌价实时更新。不是链上 BTC。</p>
+        <p className="mt-2 text-sm text-muted">
+          看牌价，然后预约当面交现金。默认 1 Ᵽ = 10 CNY。{CASH_ONLY_NOTE}
+        </p>
 
-        <form onSubmit={submit} className="mt-6 space-y-3">
+        <form onSubmit={bookCash} className="mt-6 space-y-3">
           <div className="flex gap-2">
             <button
               type="button"
@@ -124,7 +112,7 @@ export default function ExchangePage() {
             <div className="border border-line bg-bg p-3 font-mono text-sm">
               {side === "buy" ? (
                 <p>
-                  {quote.inputAmount} {currency} → <span className="text-moss">{quote.payme} Ᵽ</span>
+                  {quote.inputAmount} {currency} 现金 → <span className="text-moss">{quote.payme} Ᵽ</span>
                   <span className="mt-1 block text-[11px] text-muted">
                     {quote.cny} CNY · 1 Ᵽ = {quote.cnyPerPayme} CNY
                   </span>
@@ -133,26 +121,21 @@ export default function ExchangePage() {
                 <p>
                   {quote.payme} Ᵽ →{" "}
                   <span className="text-rose">
-                    {quote.fiat} {currency}
+                    {quote.fiat} {currency} 现金
                   </span>
                 </p>
               )}
             </div>
           )}
           <Flash text={error} tone="err" />
-          <Flash text={message} />
-          <button disabled={busy} className="btn w-full py-2.5 text-sm">
-            {busy ? "..." : side === "buy" ? "买入 PAYME" : "卖出 PAYME"}
-          </button>
-          <p className="font-mono text-[11px] text-muted">命令：/exchange 200 CNY</p>
+          <button className="btn w-full py-2.5 text-sm">预约当面现金兑换</button>
+          <p className="font-mono text-[11px] text-muted">命令：/exchange 200 CNY → 去预约</p>
         </form>
       </section>
 
       <aside className="panel p-5">
         <h2 className="font-mono text-sm">OTC / @admin</h2>
-        <p className="mt-2 text-sm text-muted">
-          客服和兑钱都发给 @admin。只收当面现金，不走支付宝/微信。工作日 15:30 前预约。
-        </p>
+        <p className="mt-2 text-sm text-muted">{CASH_ONLY_NOTE} 工作日 15:30 前预约，见面交现金后入账。</p>
         <button onClick={openSupport} className="btn-ghost mt-5 w-full py-2.5 text-sm">
           发消息给 admin
         </button>
@@ -161,8 +144,8 @@ export default function ExchangePage() {
         </a>
         <ol className="mt-5 list-decimal space-y-1 pl-4 text-xs text-muted">
           <li>预约工作日时段（15:30 截止）</li>
-          <li>消息会发给 @admin</li>
-          <li>谈妥后从金库入账</li>
+          <li>和 @admin 约见面地点</li>
+          <li>当面交现金后，金库才入账</li>
         </ol>
       </aside>
     </div>
