@@ -1,0 +1,213 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { ExchangeBooking } from "@/lib/types";
+import { Flash } from "@/components/Flash";
+import { formatPayme, SUPPORTED_FIAT } from "@/lib/money";
+
+export function BookingsAdmin({
+  date,
+  dates,
+  slots,
+  bookings,
+  counts,
+  treasury,
+}: {
+  date: string;
+  dates: string[];
+  slots: string[];
+  bookings: ExchangeBooking[];
+  counts: { date: string; people: number; pending: number }[];
+  treasury: { treasuryPayme: number; circulating: number; plannedTreasury: number };
+}) {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [slotTime, setSlotTime] = useState("15:00");
+  const [slotDate, setSlotDate] = useState(date);
+  const [side, setSide] = useState<"buy" | "sell">("buy");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("CNY");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const pending = bookings.filter((b) => b.status === "pending").length;
+
+  async function addPerson(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    const res = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        slotDate,
+        slotTime,
+        side,
+        amount: Number(amount),
+        currency,
+        note,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "添加失败");
+      return;
+    }
+    setMessage(`已加入 ${slotDate} ${slotTime} · @${username}`);
+    setUsername("");
+    setAmount("");
+    router.refresh();
+  }
+
+  async function setStatus(id: string, status: "done" | "cancelled") {
+    await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="font-mono text-xs text-gold">BOOKINGS · @admin</p>
+        <h1 className="mt-1 text-2xl font-semibold">兑换预约</h1>
+        <p className="mt-2 text-sm text-muted">
+          工作日 15:30 截止。金库初始流动性 {formatPayme(treasury.treasuryPayme)} / 规划{" "}
+          {formatPayme(treasury.plannedTreasury)}。
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="panel p-4">
+          <div className="font-mono text-[11px] text-muted">当日人数</div>
+          <div className="mt-2 font-mono text-2xl text-moss">{bookings.length}</div>
+        </div>
+        <div className="panel p-4">
+          <div className="font-mono text-[11px] text-muted">待处理</div>
+          <div className="mt-2 font-mono text-2xl text-gold">{pending}</div>
+        </div>
+        <div className="panel p-4">
+          <div className="font-mono text-[11px] text-muted">流通中</div>
+          <div className="mt-2 font-mono text-2xl text-ink">{formatPayme(treasury.circulating)}</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {dates.map((d) => (
+          <button
+            key={d}
+            onClick={() => router.push(`/admin/bookings?date=${d}`)}
+            className={`px-3 py-1.5 font-mono text-xs ${
+              d === date ? "tab-on" : "tab-off border border-line"
+            }`}
+          >
+            {d}
+            {counts.find((c) => c.date === d) ? ` · ${counts.find((c) => c.date === d)?.people}` : ""}
+          </button>
+        ))}
+      </div>
+
+      <section className="panel">
+        <h2 className="border-b border-line px-5 py-3 font-mono text-sm">
+          {date} · {bookings.length} 人
+        </h2>
+        {bookings.length === 0 && <p className="px-5 py-8 text-sm text-muted">这一天还没有预约</p>}
+        {bookings.map((b) => (
+          <div
+            key={b.id}
+            className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3"
+          >
+            <div>
+              <div className="font-mono text-sm text-gold">
+                {b.slotTime} · @{b.username}
+              </div>
+              <div className="text-xs text-muted">
+                {b.side === "buy" ? "买入" : "兑出"} {b.amount} {b.side === "buy" ? b.currency : "Ᵽ"} · {b.status}
+                {b.note ? ` · ${b.note}` : ""}
+              </div>
+            </div>
+            {b.status === "pending" && (
+              <div className="flex gap-2">
+                <button onClick={() => setStatus(b.id, "done")} className="btn px-2 py-1 text-xs">
+                  完成
+                </button>
+                <button
+                  onClick={() => setStatus(b.id, "cancelled")}
+                  className="border border-line px-2 py-1 text-xs text-muted"
+                >
+                  取消
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <section className="panel p-5">
+        <h2 className="font-mono text-sm">添加预约人物</h2>
+        <p className="mt-1 text-xs text-muted">指定日期和时间，把人加进名单（管理员不受 15:30 限制）。</p>
+        <form onSubmit={addPerson} className="mt-4 grid gap-2 sm:grid-cols-2">
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="@用户名"
+            required
+            className="field px-3 py-2"
+          />
+          <select value={slotDate} onChange={(e) => setSlotDate(e.target.value)} className="field px-3 py-2 font-mono">
+            {dates.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <select value={slotTime} onChange={(e) => setSlotTime(e.target.value)} className="field px-3 py-2 font-mono">
+            {slots.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <select value={side} onChange={(e) => setSide(e.target.value as "buy" | "sell")} className="field px-3 py-2">
+            <option value="buy">买入</option>
+            <option value="sell">兑出</option>
+          </select>
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="金额"
+            required
+            className="field px-3 py-2 font-mono"
+          />
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="field px-3 py-2 font-mono"
+          >
+            {SUPPORTED_FIAT.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="备注"
+            className="field px-3 py-2 sm:col-span-2"
+          />
+          <div className="sm:col-span-2 space-y-2">
+            <Flash text={error} tone="err" />
+            <Flash text={message} />
+            <button className="btn px-4 py-2 text-sm">加入名单</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
