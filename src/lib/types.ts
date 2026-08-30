@@ -79,6 +79,21 @@ export type ExchangeRequest = {
   username?: string;
 };
 
+export type ExchangeBooking = {
+  id: string;
+  userId: string | null;
+  username: string;
+  slotDate: string;
+  slotTime: string;
+  side: "buy" | "sell";
+  amount: number;
+  currency: string;
+  status: "pending" | "done" | "cancelled";
+  note: string | null;
+  createdAt: number;
+  createdBy: "user" | "admin";
+};
+
 export type RatesSnapshot = {
   base: "USD";
   updatedAt: number;

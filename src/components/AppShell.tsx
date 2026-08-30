@@ -11,6 +11,7 @@ import type { User } from "@/lib/types";
 const NAV = [
   { href: "/home", label: "资产" },
   { href: "/exchange", label: "交易" },
+  { href: "/book", label: "预约" },
   { href: "/auction", label: "市场" },
   { href: "/chat", label: "聊天" },
 ];
@@ -74,7 +75,10 @@ export function AppShell({
     router.refresh();
   }
 
-  const items = user.role === "admin" ? [...NAV, { href: "/admin", label: "金库" }] : NAV;
+  const items =
+    user.role === "admin"
+      ? [...NAV, { href: "/admin", label: "金库" }, { href: "/admin/bookings", label: "预约单" }]
+      : NAV;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -138,7 +142,7 @@ export function AppShell({
 
       <nav
         className={`grid border-t border-line bg-[#0b0e11] md:hidden ${
-          items.length > 4 ? "grid-cols-5" : "grid-cols-4"
+          items.length >= 6 ? "grid-cols-6" : items.length > 4 ? "grid-cols-5" : "grid-cols-4"
         }`}
       >
         {items.map((item) => (

@@ -17,7 +17,7 @@ npm run dev
 
 | 角色 | 邮箱 | 密码 | 用户名 |
 | --- | --- | --- | --- |
-| 管理员 / 客服 / 金库 | admin@payme.app | PaymeAdmin70! | admin |
+| 管理员 / 客服 / 金库 | Nicholas_mzy14@hotmail.com | admin1121 | admin |
 | 朋友 | luna@payme.app | friends123 | luna |
 | 朋友 | kai@payme.app | friends123 | kai |
 | 朋友 | nova@payme.app | friends123 | nova |
@@ -32,7 +32,8 @@ npm run dev
 - `/exchange 200 CNY` — 用人民币买入 PAYME
 - `/exchange 15 PAYME USD` — 把 PAYME 兑成美元
 - `/chat @luna` 或 `/add @kai` — 按用户名加朋友并打开私聊
-- `/support` — 连接管理员客服，可在聊天里申请兑钱
+- `/support` — 私信 @admin 客服（Nicholas_mzy14@hotmail.com）
+- `/book` — 兑换预约，工作日 15:30 截止
 - `/sell` — 去拍卖上架
 
 ## 经济设计（70 人）

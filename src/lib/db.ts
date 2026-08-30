@@ -3,8 +3,17 @@ import path from "node:path";
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
+import { ADMIN_DISPLAY, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_USERNAME } from "./adminAccount";
 import { CIRCLE_SIZE, PER_PERSON_FLOAT, PLANNED_TREASURY, TREASURY_BUFFER } from "./money";
-import type { ChatMessage, Conversation, ExchangeRequest, Listing, Transaction, User } from "./types";
+import type {
+  ChatMessage,
+  Conversation,
+  ExchangeBooking,
+  ExchangeRequest,
+  Listing,
+  Transaction,
+  User,
+} from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "payme.db");
@@ -25,6 +34,7 @@ export function getDb(): Database.Database {
   db.pragma("foreign_keys = ON");
   migrate(db);
   seed(db);
+  ensureAdminAccount(db);
   ensureDefaults(db);
   ensureListingPhotos(db);
   return db;
@@ -146,7 +156,45 @@ function migrate(database: Database.Database) {
       filled_at INTEGER,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS exchange_bookings (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      username TEXT NOT NULL,
+      slot_date TEXT NOT NULL,
+      slot_time TEXT NOT NULL,
+      side TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      note TEXT,
+      created_at INTEGER NOT NULL,
+      created_by TEXT NOT NULL DEFAULT 'user'
+    );
   `);
+}
+
+function ensureAdminAccount(database: Database.Database) {
+  const admin = database.prepare("SELECT id, email, username FROM users WHERE role = 'admin' LIMIT 1").get() as
+    | { id: string; email: string; username: string }
+    | undefined;
+  if (!admin) return;
+  if (admin.email.toLowerCase() === ADMIN_EMAIL && admin.username === ADMIN_USERNAME) return;
+
+  const hash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
+  const taken = database
+    .prepare("SELECT id, role FROM users WHERE lower(email) = lower(?)")
+    .get(ADMIN_EMAIL) as { id: string; role: string } | undefined;
+  if (taken && taken.role !== "admin" && taken.id !== admin.id) {
+    database
+      .prepare("UPDATE users SET email = ? WHERE id = ?")
+      .run(`moved-${taken.id.slice(0, 8)}@payme.local`, taken.id);
+  }
+  database
+    .prepare(
+      "UPDATE users SET email = ?, password_hash = ?, username = ?, display_name = ? WHERE id = ?",
+    )
+    .run(ADMIN_EMAIL, hash, ADMIN_USERNAME, ADMIN_DISPLAY, admin.id);
 }
 
 function writeListingImage(filename: string, title: string, accent: string) {
@@ -205,10 +253,10 @@ function seed(database: Database.Database) {
 
   insertUser.run({
     id: adminId,
-    email: "admin@payme.app",
-    password_hash: bcrypt.hashSync("PaymeAdmin70!", 10),
-    username: "admin",
-    display_name: "Pay Me 客服",
+    email: ADMIN_EMAIL,
+    password_hash: bcrypt.hashSync(ADMIN_PASSWORD, 10),
+    username: ADMIN_USERNAME,
+    display_name: ADMIN_DISPLAY,
     role: "admin",
     balance_payme: PLANNED_TREASURY,
     display_currency: "CNY",
@@ -958,4 +1006,96 @@ export function setExchangeRequestStatus(id: string, status: "filled" | "rejecte
   getDb()
     .prepare("UPDATE exchange_requests SET status = ?, filled_at = ? WHERE id = ?")
     .run(status, Date.now(), id);
+}
+
+function mapBooking(row: Record<string, unknown>): ExchangeBooking {
+  return {
+    id: String(row.id),
+    userId: (row.user_id as string | null) ?? null,
+    username: String(row.username),
+    slotDate: String(row.slot_date),
+    slotTime: String(row.slot_time),
+    side: row.side === "sell" ? "sell" : "buy",
+    amount: Number(row.amount),
+    currency: String(row.currency),
+    status: row.status === "done" ? "done" : row.status === "cancelled" ? "cancelled" : "pending",
+    note: (row.note as string | null) ?? null,
+    createdAt: Number(row.created_at),
+    createdBy: row.created_by === "admin" ? "admin" : "user",
+  };
+}
+
+export function createBooking(params: {
+  userId?: string | null;
+  username: string;
+  slotDate: string;
+  slotTime: string;
+  side: "buy" | "sell";
+  amount: number;
+  currency: string;
+  note?: string;
+  createdBy: "user" | "admin";
+}): ExchangeBooking {
+  const id = crypto.randomUUID();
+  const createdAt = Date.now();
+  getDb()
+    .prepare(
+      `INSERT INTO exchange_bookings
+       (id, user_id, username, slot_date, slot_time, side, amount, currency, status, note, created_at, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+    )
+    .run(
+      id,
+      params.userId ?? null,
+      params.username.replace(/^@/, ""),
+      params.slotDate,
+      params.slotTime,
+      params.side,
+      params.amount,
+      params.currency.toUpperCase(),
+      params.note ?? null,
+      createdAt,
+      params.createdBy,
+    );
+  return getBooking(id)!;
+}
+
+export function getBooking(id: string): ExchangeBooking | null {
+  const row = getDb().prepare("SELECT * FROM exchange_bookings WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? mapBooking(row) : null;
+}
+
+export function listBookings(slotDate?: string): ExchangeBooking[] {
+  const rows = (
+    slotDate
+      ? getDb()
+          .prepare(
+            "SELECT * FROM exchange_bookings WHERE slot_date = ? ORDER BY slot_time ASC, created_at ASC",
+          )
+          .all(slotDate)
+      : getDb()
+          .prepare("SELECT * FROM exchange_bookings ORDER BY slot_date ASC, slot_time ASC")
+          .all()
+  ) as Record<string, unknown>[];
+  return rows.map(mapBooking);
+}
+
+export function bookingCountsByDate(): { date: string; people: number; pending: number }[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT slot_date AS date, COUNT(*) AS people,
+              SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending
+       FROM exchange_bookings
+       GROUP BY slot_date
+       ORDER BY slot_date DESC
+       LIMIT 30`,
+    )
+    .all() as { date: string; people: number; pending: number }[];
+  return rows.map((r) => ({ date: r.date, people: Number(r.people), pending: Number(r.pending) }));
+}
+
+export function setBookingStatus(id: string, status: "done" | "cancelled" | "pending") {
+  getDb().prepare("UPDATE exchange_bookings SET status = ? WHERE id = ?").run(status, id);
 }

@@ -81,8 +81,8 @@ export function HomeClient({
             <span className="mt-1 block text-gold">/exchange 200 CNY</span>
           </div>
           <div className="border border-line bg-bg p-3">
-            客服
-            <span className="mt-1 block text-gold">/support</span>
+            预约 / 客服
+            <span className="mt-1 block text-gold">/book · /support</span>
           </div>
         </div>
       </section>

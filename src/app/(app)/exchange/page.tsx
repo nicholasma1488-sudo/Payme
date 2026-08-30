@@ -149,15 +149,20 @@ export default function ExchangePage() {
       </section>
 
       <aside className="panel p-5">
-        <h2 className="font-mono text-sm">OTC / 客服</h2>
-        <p className="mt-2 text-sm text-muted">微信支付宝打款后，让管理员从金库入账。</p>
+        <h2 className="font-mono text-sm">OTC / @admin</h2>
+        <p className="mt-2 text-sm text-muted">
+          客服和兑钱都发给 @admin。工作日 15:30 前预约，金库有初始流动性。
+        </p>
         <button onClick={openSupport} className="btn-ghost mt-5 w-full py-2.5 text-sm">
-          连接客服
+          发消息给 admin
         </button>
+        <a href="/book" className="btn mt-2 block w-full py-2.5 text-center text-sm">
+          兑换预约
+        </a>
         <ol className="mt-5 list-decimal space-y-1 pl-4 text-xs text-muted">
-          <li>报金额和币种</li>
-          <li>完成法币转账</li>
-          <li>客服拨 PAYME</li>
+          <li>预约工作日时段（15:30 截止）</li>
+          <li>消息会发给 @admin</li>
+          <li>谈妥后从金库入账</li>
         </ol>
       </aside>
     </div>

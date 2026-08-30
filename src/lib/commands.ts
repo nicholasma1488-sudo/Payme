@@ -7,6 +7,7 @@ export type ParsedCommand =
   | { type: "add"; username: string }
   | { type: "support" }
   | { type: "sell" }
+  | { type: "book" }
   | { type: "help" }
   | { type: "unknown"; raw: string; hint: string };
 
@@ -38,6 +39,10 @@ export function parseCommand(input: string): ParsedCommand {
 
   if (verb === "sell" || verb === "auction" || verb === "拍卖") {
     return { type: "sell" };
+  }
+
+  if (verb === "book" || verb === "预约" || verb === "reserve") {
+    return { type: "book" };
   }
 
   if (verb === "chat" || verb === "msg" || verb === "聊") {
@@ -132,6 +137,7 @@ export const COMMAND_HELP = [
   { cmd: "/exchange 15 PAYME USD", desc: "兑出法币" },
   { cmd: "/chat @luna", desc: "私聊" },
   { cmd: "/add @kai", desc: "加好友" },
-  { cmd: "/support", desc: "客服兑钱" },
+  { cmd: "/support", desc: "私信 @admin 客服" },
+  { cmd: "/book", desc: "兑换预约（工作日 15:30）" },
   { cmd: "/sell", desc: "上架拍卖" },
 ];

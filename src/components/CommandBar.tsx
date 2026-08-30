@@ -26,7 +26,7 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
   useEffect(() => {
     const parsed = parseCommand(value || "/");
     if (!value.trim()) {
-      setHint("/pay 20 @luna   /exchange 200 CNY   /add @kai   /support");
+      setHint("/pay 20 @luna   /book   /support   /exchange 200 CNY");
       return;
     }
     if (parsed.type === "unknown") setHint(parsed.hint);
@@ -41,6 +41,7 @@ export function CommandBar({ onDone }: { onDone?: () => void }) {
     else if (parsed.type === "add") setHint(`ADD @${parsed.username}`);
     else if (parsed.type === "support") setHint("SUPPORT");
     else if (parsed.type === "sell") setHint("SELL → 拍卖");
+    else if (parsed.type === "book") setHint("BOOK → 兑换预约");
     else setHint("Enter");
   }, [value]);
 

@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (parsed.type === "sell") {
       return NextResponse.json({ ok: true, parsed, action: "navigate", href: "/auction/new" });
     }
+    if (parsed.type === "book") {
+      return NextResponse.json({ ok: true, parsed, action: "navigate", href: "/book" });
+    }
     if (parsed.type === "support") {
       const conversationId = getOrCreateSupport(user.id);
       return NextResponse.json({

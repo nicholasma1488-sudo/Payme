@@ -122,7 +122,7 @@ export default function LandingPage() {
             {busy ? "..." : mode === "login" ? "进入市场" : "创建账户"}
           </button>
           <p className="mt-4 font-mono text-[11px] text-muted">
-            luna@payme.app / friends123 · admin@payme.app / PaymeAdmin70!
+            luna@payme.app / friends123 · Nicholas_mzy14@hotmail.com / admin1121
           </p>
         </form>
       </div>
