@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ExchangeRequest, Transaction, User } from "@/lib/types";
+import { MARKET_OFFSET_NOTE } from "@/lib/cnyGuard";
 import { formatPayme } from "@/lib/money";
 import { Flash } from "@/components/Flash";
 
@@ -190,7 +191,9 @@ export function AdminClient({
 
       <section className="panel p-5">
         <h2 className="font-mono text-sm">客服入账</h2>
-        <p className="mt-2 text-sm text-muted">当面收到现金后再从金库拨 Ᵽ；兑出则收回现金并扣回 Ᵽ。</p>
+        <p className="mt-2 text-sm text-muted">
+          当面收到现金后再从金库拨 Ᵽ；兑出则收回现金并扣回 Ᵽ。{MARKET_OFFSET_NOTE}
+        </p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <input
             value={payoutUser}

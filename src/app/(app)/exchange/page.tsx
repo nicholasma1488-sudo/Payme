@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Flash } from "@/components/Flash";
 import { CASH_ONLY_NOTE } from "@/lib/names";
+import { MARKET_OFFSET_NOTE } from "@/lib/cnyGuard";
 import { SUPPORTED_FIAT } from "@/lib/money";
 
 type Quote = {
@@ -12,6 +13,10 @@ type Quote = {
   payme: number;
   fiat?: number;
   cny: number;
+  officialCny: number;
+  offset: number;
+  clamped: boolean;
+  maxOffset: number;
   cnyPerPayme: number;
 };
 
@@ -69,7 +74,7 @@ export default function ExchangePage() {
         <p className="font-mono text-xs text-gold">SPOT · CASH ONLY</p>
         <h1 className="mt-1 text-2xl font-semibold">交易</h1>
         <p className="mt-2 text-sm text-muted">
-          看牌价，然后预约当面交现金。默认 1 Ᵽ = 10 CNY。{CASH_ONLY_NOTE}
+          看牌价，然后预约当面交现金。默认 1 Ᵽ = 10 CNY。{CASH_ONLY_NOTE} {MARKET_OFFSET_NOTE}
         </p>
 
         <form onSubmit={bookCash} className="mt-6 space-y-3">
@@ -114,7 +119,9 @@ export default function ExchangePage() {
                 <p>
                   {quote.inputAmount} {currency} 现金 → <span className="text-moss">{quote.payme} Ᵽ</span>
                   <span className="mt-1 block text-[11px] text-muted">
-                    {quote.cny} CNY · 1 Ᵽ = {quote.cnyPerPayme} CNY
+                    流动市场 {quote.cny} CNY · 人民币兑换 {quote.officialCny} CNY · 偏差{" "}
+                    {quote.offset} / {quote.maxOffset} 元
+                    {quote.clamped ? " · 已夹紧" : ""} · 1 Ᵽ = {quote.cnyPerPayme} CNY
                   </span>
                 </p>
               ) : (
@@ -122,6 +129,10 @@ export default function ExchangePage() {
                   {quote.payme} Ᵽ →{" "}
                   <span className="text-rose">
                     {quote.fiat} {currency} 现金
+                  </span>
+                  <span className="mt-1 block text-[11px] text-muted">
+                    人民币兑换 {quote.officialCny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
+                    {quote.clamped ? " · 已夹紧" : ""}
                   </span>
                 </p>
               )}

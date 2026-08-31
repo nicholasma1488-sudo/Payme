@@ -11,6 +11,7 @@ import {
   ADMIN_PASSWORD,
   ADMIN_USERNAME,
 } from "./adminAccount";
+import { assertPaymeMatchesRmb } from "./cnyGuard";
 import {
   CIRCLE_SIZE,
   DEFAULT_CNY_PER_PAYME,
@@ -193,6 +194,10 @@ function migrate(database: Database.Database) {
   `);
   addColumn(database, "users", "first_name", "TEXT");
   addColumn(database, "users", "last_name", "TEXT");
+  addColumn(database, "exchange_bookings", "settled_tx_id", "TEXT");
+  addColumn(database, "exchange_bookings", "settled_payme", "REAL");
+  addColumn(database, "exchange_bookings", "settled_cny", "REAL");
+  addColumn(database, "exchange_bookings", "settled_offset", "REAL");
   ensureExclusiveBookingSlots(database);
 }
 
@@ -1072,6 +1077,15 @@ export function adminPayout(params: {
   if (!other) throw new Error(`找不到 @${params.username}`);
   if (other.id === admin.id) throw new Error("不能给金库自己调账");
   if (params.amount <= 0) throw new Error("金额必须大于 0");
+  if (params.fiatAmount && params.fiatAmount > 0) {
+    const cnyPerPayme = Number(getSetting("cny_per_payme", String(DEFAULT_CNY_PER_PAYME)));
+    assertPaymeMatchesRmb({
+      payme: params.amount,
+      fiatAmount: params.fiatAmount,
+      fiatCurrency: params.fiatCurrency || "CNY",
+      cnyPerPayme,
+    });
+  }
 
   const fromUserId = params.direction === "credit" ? admin.id : other.id;
   const toUserId = params.direction === "credit" ? other.id : admin.id;
@@ -1198,6 +1212,10 @@ function mapBooking(row: Record<string, unknown>): ExchangeBooking {
     note: (row.note as string | null) ?? null,
     createdAt: Number(row.created_at),
     createdBy: row.created_by === "admin" ? "admin" : "user",
+    settledTxId: (row.settled_tx_id as string | null) ?? null,
+    settledPayme: row.settled_payme == null ? null : Number(row.settled_payme),
+    settledCny: row.settled_cny == null ? null : Number(row.settled_cny),
+    settledOffset: row.settled_offset == null ? null : Number(row.settled_offset),
   };
 }
 
@@ -1319,4 +1337,21 @@ export function bookingCountsByDate(): { date: string; people: number; pending: 
 
 export function setBookingStatus(id: string, status: "done" | "cancelled" | "pending") {
   getDb().prepare("UPDATE exchange_bookings SET status = ? WHERE id = ?").run(status, id);
+}
+
+export function markBookingSettled(
+  id: string,
+  params: { txId: string; payme: number; cny: number; offset: number },
+) {
+  getDb()
+    .prepare(
+      `UPDATE exchange_bookings
+       SET status = 'done',
+           settled_tx_id = ?,
+           settled_payme = ?,
+           settled_cny = ?,
+           settled_offset = ?
+       WHERE id = ?`,
+    )
+    .run(params.txId, params.payme, params.cny, params.offset, id);
 }

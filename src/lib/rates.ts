@@ -1,3 +1,4 @@
+import { OFFICIAL_USD_BOOK } from "./cnyGuard";
 import { getSetting } from "./db";
 import { convertViaUsd, SUPPORTED_FIAT } from "./money";
 import type { RatesSnapshot } from "./types";
@@ -6,18 +7,7 @@ type Cache = { snapshot: RatesSnapshot; fetchedAt: number };
 let cache: Cache | null = null;
 const TTL_MS = 5 * 60 * 1000;
 
-const FALLBACK_USD: Record<string, number> = {
-  USD: 1,
-  CNY: 7.24,
-  EUR: 0.92,
-  GBP: 0.78,
-  JPY: 149.2,
-  AUD: 1.54,
-  HKD: 7.78,
-  KRW: 1380,
-  SGD: 1.35,
-  CAD: 1.38,
-};
+const FALLBACK_USD: Record<string, number> = { ...OFFICIAL_USD_BOOK };
 
 async function fetchUsdRates(): Promise<Record<string, number>> {
   try {

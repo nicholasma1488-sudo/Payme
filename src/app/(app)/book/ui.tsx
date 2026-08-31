@@ -4,8 +4,19 @@ import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Flash } from "@/components/Flash";
 import { CASH_ONLY_NOTE } from "@/lib/names";
+import { MARKET_OFFSET_NOTE } from "@/lib/cnyGuard";
 import { SUPPORTED_FIAT } from "@/lib/money";
 import type { ExchangeBooking } from "@/lib/types";
+
+type Quote = {
+  payme: number;
+  fiat?: number;
+  cny: number;
+  officialCny: number;
+  offset: number;
+  clamped: boolean;
+  maxOffset: number;
+};
 
 export function BookClient() {
   const params = useSearchParams();
@@ -22,6 +33,7 @@ export function BookClient() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [quote, setQuote] = useState<Quote | null>(null);
 
   const taken = takenByDate[slotDate] || [];
   const openSlots = openByDate[slotDate] || [];
@@ -43,6 +55,24 @@ export function BookClient() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      const n = Number(amount);
+      if (!n || n <= 0) {
+        setQuote(null);
+        return;
+      }
+      const res = await fetch("/api/exchange/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ side, amount: n, currency }),
+      });
+      const data = await res.json();
+      setQuote(res.ok ? data.quote : null);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [side, amount, currency]);
 
   useEffect(() => {
     if (!slotDate) return;
@@ -103,7 +133,7 @@ export function BookClient() {
         <p className="font-mono text-xs text-gold">OTC · @admin</p>
         <h1 className="mt-1 text-2xl font-semibold">现金兑换预约</h1>
         <p className="mt-2 text-sm text-muted">
-          {CASH_ONLY_NOTE} 预约会发给管理员 @admin。每个时段只能一个人。已被预约的时间请改选其他时段或明天。工作日{" "}
+          {CASH_ONLY_NOTE} {MARKET_OFFSET_NOTE} 预约会发给管理员 @admin。每个时段只能一个人。已被预约的时间请改选其他时段或明天。工作日{" "}
           <span className="text-gold">15:30</span> 截止（南澳时间）。
         </p>
         <form onSubmit={submit} className="mt-5 space-y-3">
@@ -166,6 +196,23 @@ export function BookClient() {
               ))}
             </select>
           </div>
+          {quote && (
+            <div className="border border-line bg-bg p-3 font-mono text-xs text-muted">
+              {side === "buy" ? (
+                <span>
+                  流动市场入账 <span className="text-moss">{quote.payme} Ᵽ</span> · 人民币兑换{" "}
+                  {quote.officialCny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
+                  {quote.clamped ? " · 已夹紧" : ""}
+                </span>
+              ) : (
+                <span>
+                  兑出 {quote.payme} Ᵽ → {quote.fiat} {currency} · 人民币兑换 {quote.officialCny} CNY ·
+                  偏差 {quote.offset} / {quote.maxOffset} 元
+                  {quote.clamped ? " · 已夹紧" : ""}
+                </span>
+              )}
+            </div>
+          )}
           {taken.length > 0 && (
             <p className="font-mono text-[11px] text-rose">已占用：{taken.join("、")}。请选其他时间或明天。</p>
           )}

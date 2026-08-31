@@ -1,11 +1,16 @@
 import {
   adjustCnyReserve,
   findUserById,
+  findUserByUsername,
   getAdmin,
+  getBooking,
   getSetting,
+  markBookingSettled,
+  setBookingStatus,
   transferPayme,
 } from "./db";
-import { fiatToPayme, isFiat, paymeToFiat, roundMoney } from "./money";
+import { OFFICIAL_USD_BOOK, settleMarketCredit } from "./cnyGuard";
+import { isFiat } from "./money";
 import { getRates } from "./rates";
 
 export async function quoteExchange(params: {
@@ -18,32 +23,16 @@ export async function quoteExchange(params: {
   if (params.amount <= 0) throw new Error("金额必须大于 0");
   const rates = await getRates();
   const cnyPerPayme = Number(getSetting("cny_per_payme", "10"));
-
-  if (params.side === "buy") {
-    const payme = fiatToPayme(params.amount, currency, rates.usd, cnyPerPayme);
-    const cny = fiatToPayme(params.amount, currency, rates.usd, 1);
-    return {
-      side: params.side,
-      inputAmount: params.amount,
-      inputCurrency: currency,
-      payme,
-      cny: roundMoney(cny, 2),
-      cnyPerPayme,
-      ratesUpdatedAt: rates.updatedAt,
-    };
-  }
-
-  const fiat = paymeToFiat(params.amount, currency, rates.usd, cnyPerPayme);
-  const cny = params.amount * cnyPerPayme;
-  return {
+  const quote = settleMarketCredit({
     side: params.side,
-    inputAmount: params.amount,
-    inputCurrency: "PAYME",
-    outputCurrency: currency,
-    payme: params.amount,
-    fiat,
-    cny: roundMoney(cny, 2),
+    amount: params.amount,
+    currency,
+    marketUsd: rates.usd,
     cnyPerPayme,
+    officialUsd: OFFICIAL_USD_BOOK,
+  });
+  return {
+    ...quote,
     ratesUpdatedAt: rates.updatedAt,
   };
 }
@@ -99,5 +88,50 @@ export async function executeExchange(params: {
     message: `已兑出 ${quote.payme} Ᵽ ≈ ${quote.fiat} ${params.currency.toUpperCase()}`,
     quote,
     transaction: tx,
+  };
+}
+
+/** 预约完成后，按流动市场自动入账，人民币偏差不超过 5 元。 */
+export async function settleBookingFromMarket(bookingId: string) {
+  const booking = getBooking(bookingId);
+  if (!booking) throw new Error("预约不存在");
+  if (booking.status === "cancelled") throw new Error("预约已取消");
+  if (booking.settledTxId) {
+    setBookingStatus(bookingId, "done");
+    return {
+      alreadySettled: true,
+      booking: getBooking(bookingId),
+      quote: null,
+      message: "这笔预约已经按流动市场入过账",
+    };
+  }
+
+  const user = booking.userId ? findUserById(booking.userId) : findUserByUsername(booking.username);
+  if (!user) throw new Error(`找不到 @${booking.username}，无法自动入账`);
+
+  const result = await executeExchange({
+    userId: user.id,
+    side: booking.side,
+    amount: booking.amount,
+    currency: booking.currency,
+  });
+  markBookingSettled(bookingId, {
+    txId: result.transaction.id,
+    payme: result.quote.payme,
+    cny: result.quote.cny,
+    offset: result.quote.offset,
+  });
+  const offsetNote = result.quote.clamped
+    ? `流动市场已按人民币兑换夹紧，偏差 ${result.quote.offset} CNY`
+    : `相对人民币兑换偏差 ${result.quote.offset} CNY`;
+  return {
+    alreadySettled: false,
+    booking: getBooking(bookingId),
+    quote: result.quote,
+    transaction: result.transaction,
+    message:
+      booking.side === "buy"
+        ? `已按流动市场拨出 ${result.quote.payme} Ᵽ（${result.quote.cny} CNY）。${offsetNote}`
+        : `已按流动市场收回 ${result.quote.payme} Ᵽ（${result.quote.cny} CNY）。${offsetNote}`,
   };
 }

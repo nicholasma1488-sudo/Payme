@@ -4,14 +4,25 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ExchangeBooking } from "@/lib/types";
 import { Flash } from "@/components/Flash";
+import { MARKET_OFFSET_NOTE } from "@/lib/cnyGuard";
 import { formatPayme, SUPPORTED_FIAT } from "@/lib/money";
 import { formatLegalName } from "@/lib/names";
+
+type MarketQuote = {
+  payme: number;
+  cny: number;
+  officialCny: number;
+  offset: number;
+  clamped: boolean;
+  maxOffset: number;
+};
 
 export function BookingsAdmin({
   date,
   dates,
   slots,
   bookings,
+  quotes,
   takenByDate,
   counts,
   treasury,
@@ -20,6 +31,7 @@ export function BookingsAdmin({
   dates: string[];
   slots: string[];
   bookings: ExchangeBooking[];
+  quotes: Record<string, MarketQuote>;
   takenByDate: Record<string, string[]>;
   counts: { date: string; people: number; pending: number }[];
   treasury: {
@@ -72,11 +84,19 @@ export function BookingsAdmin({
   }
 
   async function setStatus(id: string, status: "done" | "cancelled") {
-    await fetch("/api/bookings", {
+    setError(null);
+    setMessage(null);
+    const res = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "处理失败");
+      return;
+    }
+    if (data.message) setMessage(data.message);
     router.refresh();
   }
 
@@ -106,7 +126,7 @@ export function BookingsAdmin({
         <p className="font-mono text-xs text-gold">BOOKINGS · @admin</p>
         <h1 className="mt-1 text-2xl font-semibold">兑换预约</h1>
         <p className="mt-2 text-sm text-muted">
-          只收当面现金。工作日 15:30 截止。点开人名即可问见面地点。待流通{" "}
+          只收当面现金。工作日 15:30 截止。点开人名即可问见面地点。{MARKET_OFFSET_NOTE} 待流通{" "}
           {formatPayme(treasury.treasuryPayme)} / 规划 {formatPayme(treasury.plannedTreasury)}
           ，准备金 {treasury.cnyReserve.toLocaleString("zh-CN")} CNY。
         </p>
@@ -125,6 +145,11 @@ export function BookingsAdmin({
           <div className="font-mono text-[11px] text-muted">流通中</div>
           <div className="mt-2 font-mono text-2xl text-ink">{formatPayme(treasury.circulating)}</div>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Flash text={error} tone="err" />
+        <Flash text={message} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -149,6 +174,7 @@ export function BookingsAdmin({
         {bookings.length === 0 && <p className="px-5 py-8 text-sm text-muted">这一天还没有预约</p>}
         {bookings.map((b) => {
           const legal = formatLegalName(b);
+          const q = quotes[b.id];
           return (
             <div
               key={b.id}
@@ -164,6 +190,18 @@ export function BookingsAdmin({
                   {b.status}
                   {b.note ? ` · ${b.note}` : ""}
                 </div>
+                {q && b.status === "pending" && (
+                  <div className="mt-1 font-mono text-[11px] text-moss">
+                    完成时自动入账 {q.payme} Ᵽ · 人民币 {q.officialCny} CNY · 偏差 {q.offset}/
+                    {q.maxOffset}
+                    {q.clamped ? " · 已夹紧" : ""}
+                  </div>
+                )}
+                {b.settledPayme != null && (
+                  <div className="mt-1 font-mono text-[11px] text-gold">
+                    已入账 {b.settledPayme} Ᵽ · {b.settledCny} CNY · 偏差 {b.settledOffset} 元
+                  </div>
+                )}
               </button>
               <div className="flex gap-2">
                 <button

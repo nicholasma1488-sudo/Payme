@@ -20,6 +20,7 @@ import {
   sendMessage,
   setBookingStatus,
 } from "@/lib/db";
+import { settleBookingFromMarket } from "@/lib/exchange";
 import { isFiat } from "@/lib/money";
 import { formatLegalName } from "@/lib/names";
 
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
       username?: string;
     };
     if (body.id && body.status && user.role === "admin") {
+      if (body.status === "done") {
+        const settled = await settleBookingFromMarket(body.id);
+        return NextResponse.json({ ok: true, ...settled });
+      }
       setBookingStatus(body.id, body.status);
       return NextResponse.json({ ok: true });
     }
@@ -139,6 +144,10 @@ export async function PATCH(req: NextRequest) {
     if (user.role !== "admin") throw Object.assign(new Error("仅管理员"), { status: 403 });
     const body = (await req.json()) as { id?: string; status?: "done" | "cancelled" | "pending" };
     if (!body.id || !body.status) throw new Error("缺少预约");
+    if (body.status === "done") {
+      const settled = await settleBookingFromMarket(body.id);
+      return NextResponse.json({ ok: true, ...settled });
+    }
     setBookingStatus(body.id, body.status);
     return NextResponse.json({ ok: true });
   } catch (error) {

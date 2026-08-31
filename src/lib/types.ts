@@ -98,6 +98,10 @@ export type ExchangeBooking = {
   note: string | null;
   createdAt: number;
   createdBy: "user" | "admin";
+  settledTxId: string | null;
+  settledPayme: number | null;
+  settledCny: number | null;
+  settledOffset: number | null;
 };
 
 export type RatesSnapshot = {
