@@ -12,6 +12,7 @@ export function BookingsAdmin({
   dates,
   slots,
   bookings,
+  takenByDate,
   counts,
   treasury,
 }: {
@@ -19,6 +20,7 @@ export function BookingsAdmin({
   dates: string[];
   slots: string[];
   bookings: ExchangeBooking[];
+  takenByDate: Record<string, string[]>;
   counts: { date: string; people: number; pending: number }[];
   treasury: { treasuryPayme: number; circulating: number; plannedTreasury: number };
 }) {
@@ -192,7 +194,9 @@ export function BookingsAdmin({
 
       <section className="panel p-5">
         <h2 className="font-mono text-sm">添加预约人物</h2>
-        <p className="mt-1 text-xs text-muted">指定日期和时间，把人加进名单（管理员不受 15:30 限制）。</p>
+        <p className="mt-1 text-xs text-muted">
+          指定空闲日期和时间。已被预约的时段不能再加人，请换其他时间或明天。
+        </p>
         <form onSubmit={addPerson} className="mt-4 grid gap-2 sm:grid-cols-2">
           <input
             value={username}
@@ -209,11 +213,13 @@ export function BookingsAdmin({
             ))}
           </select>
           <select value={slotTime} onChange={(e) => setSlotTime(e.target.value)} className="field px-3 py-2 font-mono">
-            {slots.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
+            {slots
+              .filter((t) => !(takenByDate[slotDate] || []).includes(t))
+              .map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
           </select>
           <select value={side} onChange={(e) => setSide(e.target.value as "buy" | "sell")} className="field px-3 py-2">
             <option value="buy">买入</option>

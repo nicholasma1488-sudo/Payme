@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { bookingCountsByDate, listBookings, treasuryStats } from "@/lib/db";
+import { bookingCountsByDate, listBookings, listTakenByDate, treasuryStats } from "@/lib/db";
 import { nextBookableDate, SLOT_TIMES, upcomingWeekdays } from "@/lib/booking";
 import { BookingsAdmin } from "./ui";
 
@@ -19,6 +19,7 @@ export default async function AdminBookingsPage({
       dates={upcomingWeekdays(new Date(), 15)}
       slots={[...SLOT_TIMES]}
       bookings={listBookings(date)}
+      takenByDate={listTakenByDate()}
       counts={bookingCountsByDate()}
       treasury={treasuryStats()}
     />

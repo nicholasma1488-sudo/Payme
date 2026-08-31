@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireUser } from "@/lib/auth";
 import {
+  availableSlots,
   canBookDate,
   isValidSlot,
   nextBookableDate,
+  nextOpenSlot,
   SLOT_TIMES,
   upcomingWeekdays,
 } from "@/lib/booking";
@@ -14,6 +16,7 @@ import {
   findUserByUsername,
   getOrCreateSupport,
   listBookings,
+  listTakenByDate,
   sendMessage,
   setBookingStatus,
 } from "@/lib/db";
@@ -24,22 +27,33 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser();
     const date = req.nextUrl.searchParams.get("date") || undefined;
+    const takenByDate = listTakenByDate();
+    const nextOpen = nextOpenSlot(takenByDate);
+    const dates = upcomingWeekdays();
+    const openByDate: Record<string, string[]> = {};
+    for (const d of dates) {
+      openByDate[d] = availableSlots(d, takenByDate[d] || []);
+    }
+    const payload = {
+      dates,
+      slots: SLOT_TIMES,
+      takenByDate,
+      openByDate,
+      openSlots: openByDate[date || nextOpen?.date || nextBookableDate()] || [],
+      nextDate: nextOpen?.date || nextBookableDate(),
+      nextOpen,
+      cutoff: "15:30",
+    };
     if (user.role === "admin") {
       return NextResponse.json({
+        ...payload,
         bookings: listBookings(date),
         counts: bookingCountsByDate(),
-        dates: upcomingWeekdays(),
-        slots: SLOT_TIMES,
-        nextDate: nextBookableDate(),
-        cutoff: "15:30",
       });
     }
     return NextResponse.json({
+      ...payload,
       bookings: listBookings(date).filter((b) => b.userId === user.id || b.username === user.username),
-      dates: upcomingWeekdays(),
-      slots: SLOT_TIMES,
-      nextDate: nextBookableDate(),
-      cutoff: "15:30",
     });
   } catch (error) {
     return jsonError(error);

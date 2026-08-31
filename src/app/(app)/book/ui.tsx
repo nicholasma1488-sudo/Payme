@@ -10,9 +10,10 @@ import type { ExchangeBooking } from "@/lib/types";
 export function BookClient() {
   const params = useSearchParams();
   const [dates, setDates] = useState<string[]>([]);
-  const [slots, setSlots] = useState<string[]>([]);
+  const [takenByDate, setTakenByDate] = useState<Record<string, string[]>>({});
+  const [openByDate, setOpenByDate] = useState<Record<string, string[]>>({});
   const [slotDate, setSlotDate] = useState("");
-  const [slotTime, setSlotTime] = useState("15:00");
+  const [slotTime, setSlotTime] = useState("");
   const [side, setSide] = useState<"buy" | "sell">(params.get("side") === "sell" ? "sell" : "buy");
   const [amount, setAmount] = useState(params.get("amount") || "200");
   const [currency, setCurrency] = useState(params.get("currency") || "CNY");
@@ -22,19 +23,46 @@ export function BookClient() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const taken = takenByDate[slotDate] || [];
+  const openSlots = openByDate[slotDate] || [];
+
   async function load() {
     const res = await fetch("/api/bookings");
     const data = await res.json();
     if (!res.ok) return;
     setDates(data.dates || []);
-    setSlots(data.slots || []);
-    if (!slotDate && data.nextDate) setSlotDate(data.nextDate);
+    setTakenByDate(data.takenByDate || {});
+    setOpenByDate(data.openByDate || {});
     setMine(data.bookings || []);
+    const nextDate = data.nextOpen?.date || data.nextDate || "";
+    const nextTime = data.nextOpen?.time || "";
+    setSlotDate((prev) => prev || nextDate);
+    setSlotTime((prev) => prev || nextTime);
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!slotDate) return;
+    const open = openByDate[slotDate] || [];
+    if (open.length === 0) {
+      const nextDay = dates.find((d) => d > slotDate && (openByDate[d] || []).length > 0);
+      if (nextDay) {
+        setSlotDate(nextDay);
+        setSlotTime((openByDate[nextDay] || [])[0] || "");
+        setError("这一天时段都满了，请选明天或其他日期");
+      }
+      return;
+    }
+    if (slotTime && !open.includes(slotTime)) {
+      setSlotTime(open[0]);
+      setError("这个时段已被预约，请选其他时间或明天");
+    } else if (!slotTime) {
+      setSlotTime(open[0]);
+    }
+  }, [slotDate, openByDate, dates, slotTime]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -57,6 +85,7 @@ export function BookClient() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "预约失败");
+        await load();
         return;
       }
       setMessage(data.message);
@@ -71,11 +100,11 @@ export function BookClient() {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
       <section className="panel p-5">
-        <p className="font-mono text-xs text-gold">OTC · CASH ONLY</p>
+        <p className="font-mono text-xs text-gold">OTC · @admin</p>
         <h1 className="mt-1 text-2xl font-semibold">现金兑换预约</h1>
         <p className="mt-2 text-sm text-muted">
-          {CASH_ONLY_NOTE} 发给管理员 @admin。每个工作日 <span className="text-gold">15:30</span>{" "}
-          截止（南澳时间）。之后和下班/周末约下一个工作日。
+          {CASH_ONLY_NOTE} 预约会发给管理员 @admin。每个时段只能一个人。已被预约的时间请改选其他时段或明天。工作日{" "}
+          <span className="text-gold">15:30</span> 截止（南澳时间）。
         </p>
         <form onSubmit={submit} className="mt-5 space-y-3">
           <div className="flex gap-2">
@@ -99,11 +128,21 @@ export function BookClient() {
               {dates.map((d) => (
                 <option key={d} value={d}>
                   {d}
+                  {(takenByDate[d] || []).length ? ` · 已约 ${(takenByDate[d] || []).length}` : ""}
                 </option>
               ))}
             </select>
-            <select value={slotTime} onChange={(e) => setSlotTime(e.target.value)} className="field px-3 py-2 font-mono">
-              {slots.map((t) => (
+            <select
+              value={slotTime}
+              onChange={(e) => {
+                setError(null);
+                setSlotTime(e.target.value);
+              }}
+              className="field px-3 py-2 font-mono"
+              required
+            >
+              {openSlots.length === 0 && <option value="">这一天已满，请换明天</option>}
+              {openSlots.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -127,6 +166,9 @@ export function BookClient() {
               ))}
             </select>
           </div>
+          {taken.length > 0 && (
+            <p className="font-mono text-[11px] text-rose">已占用：{taken.join("、")}。请选其他时间或明天。</p>
+          )}
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -135,8 +177,8 @@ export function BookClient() {
           />
           <Flash text={error} tone="err" />
           <Flash text={message} />
-          <button disabled={busy} className="btn w-full py-2.5 text-sm">
-            {busy ? "..." : "预约当面现金兑换"}
+          <button disabled={busy || !slotTime} className="btn w-full py-2.5 text-sm">
+            {busy ? "..." : "预约并通知 @admin"}
           </button>
         </form>
       </section>

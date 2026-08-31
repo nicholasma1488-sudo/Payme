@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BookPrompt } from "./BookPrompt";
 import { CommandBar } from "./CommandBar";
 import { RateTicker } from "./RateTicker";
 import { formatPayme, SUPPORTED_FIAT } from "@/lib/money";
@@ -18,9 +19,11 @@ const NAV = [
 
 export function AppShell({
   user,
+  askBook = false,
   children,
 }: {
   user: Pick<User, "username" | "displayName" | "role" | "balancePayme" | "displayCurrency">;
+  askBook?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -139,6 +142,7 @@ export function AppShell({
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">{children}</main>
+      <BookPrompt show={askBook} />
 
       <nav
         className={`grid border-t border-line bg-[#0b0e11] md:hidden ${

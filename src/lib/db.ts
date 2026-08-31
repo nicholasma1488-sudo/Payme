@@ -178,6 +178,35 @@ function migrate(database: Database.Database) {
   `);
   addColumn(database, "users", "first_name", "TEXT");
   addColumn(database, "users", "last_name", "TEXT");
+  ensureExclusiveBookingSlots(database);
+}
+
+function ensureExclusiveBookingSlots(database: Database.Database) {
+  const dups = database
+    .prepare(
+      `SELECT slot_date, slot_time FROM exchange_bookings
+       WHERE status != 'cancelled'
+       GROUP BY slot_date, slot_time
+       HAVING COUNT(*) > 1`,
+    )
+    .all() as { slot_date: string; slot_time: string }[];
+  const extras = database.prepare(
+    `SELECT id FROM exchange_bookings
+     WHERE slot_date = ? AND slot_time = ? AND status != 'cancelled'
+     ORDER BY created_at ASC`,
+  );
+  const cancel = database.prepare("UPDATE exchange_bookings SET status = 'cancelled' WHERE id = ?");
+  for (const dup of dups) {
+    const rows = extras.all(dup.slot_date, dup.slot_time) as { id: string }[];
+    for (const extra of rows.slice(1)) {
+      cancel.run(extra.id);
+    }
+  }
+  database.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS exchange_bookings_slot_unique
+    ON exchange_bookings(slot_date, slot_time)
+    WHERE status != 'cancelled'
+  `);
 }
 
 function addColumn(database: Database.Database, table: string, column: string, def: string) {
@@ -1122,28 +1151,75 @@ export function createBooking(params: {
   note?: string;
   createdBy: "user" | "admin";
 }): ExchangeBooking {
+  if (isSlotTaken(params.slotDate, params.slotTime)) {
+    throw new Error("这个时段已被预约，请选其他时间或明天");
+  }
   const id = crypto.randomUUID();
   const createdAt = Date.now();
-  getDb()
-    .prepare(
-      `INSERT INTO exchange_bookings
-       (id, user_id, username, slot_date, slot_time, side, amount, currency, status, note, created_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
-    )
-    .run(
-      id,
-      params.userId ?? null,
-      params.username.replace(/^@/, ""),
-      params.slotDate,
-      params.slotTime,
-      params.side,
-      params.amount,
-      params.currency.toUpperCase(),
-      params.note ?? null,
-      createdAt,
-      params.createdBy,
-    );
+  try {
+    getDb()
+      .prepare(
+        `INSERT INTO exchange_bookings
+         (id, user_id, username, slot_date, slot_time, side, amount, currency, status, note, created_at, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+      )
+      .run(
+        id,
+        params.userId ?? null,
+        params.username.replace(/^@/, ""),
+        params.slotDate,
+        params.slotTime,
+        params.side,
+        params.amount,
+        params.currency.toUpperCase(),
+        params.note ?? null,
+        createdAt,
+        params.createdBy,
+      );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("UNIQUE") || message.includes("unique")) {
+      throw new Error("这个时段已被预约，请选其他时间或明天");
+    }
+    throw error;
+  }
   return getBooking(id)!;
+}
+
+export function isSlotTaken(slotDate: string, slotTime: string): boolean {
+  const row = getDb()
+    .prepare(
+      `SELECT 1 FROM exchange_bookings
+       WHERE slot_date = ? AND slot_time = ? AND status != 'cancelled'`,
+    )
+    .get(slotDate, slotTime);
+  return Boolean(row);
+}
+
+export function listTakenByDate(): Record<string, string[]> {
+  const rows = getDb()
+    .prepare(
+      `SELECT slot_date AS date, slot_time AS time FROM exchange_bookings
+       WHERE status != 'cancelled'
+       ORDER BY slot_date, slot_time`,
+    )
+    .all() as { date: string; time: string }[];
+  const out: Record<string, string[]> = {};
+  for (const row of rows) {
+    if (!out[row.date]) out[row.date] = [];
+    if (!out[row.date].includes(row.time)) out[row.date].push(row.time);
+  }
+  return out;
+}
+
+export function userHasPendingBooking(userId: string, username?: string | null): boolean {
+  const row = getDb()
+    .prepare(
+      `SELECT 1 FROM exchange_bookings
+       WHERE status = 'pending' AND (user_id = ? OR lower(username) = lower(?))`,
+    )
+    .get(userId, username || "");
+  return Boolean(row);
 }
 
 export function getBooking(id: string): ExchangeBooking | null {

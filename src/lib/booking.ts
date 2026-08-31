@@ -125,3 +125,35 @@ export function upcomingWeekdays(at: Date = new Date(), count = 10, tz = BOOKING
   }
   return out;
 }
+
+export function isSlotPast(ymd: string, time: string, at: Date = new Date(), tz = BOOKING_TZ): boolean {
+  const today = zonedParts(at, tz).ymd;
+  if (ymd > today) return false;
+  if (ymd < today) return true;
+  const [hh, mm] = time.split(":").map(Number);
+  const p = zonedParts(at, tz);
+  return p.hour > hh || (p.hour === hh && p.minute >= mm);
+}
+
+export function availableSlots(
+  ymd: string,
+  taken: string[],
+  at: Date = new Date(),
+  tz = BOOKING_TZ,
+): string[] {
+  if (!canBookDate(ymd, at, tz)) return [];
+  const busy = new Set(taken);
+  return SLOT_TIMES.filter((t) => !busy.has(t) && !isSlotPast(ymd, t, at, tz));
+}
+
+export function nextOpenSlot(
+  takenByDate: Record<string, string[]>,
+  at: Date = new Date(),
+  tz = BOOKING_TZ,
+): { date: string; time: string } | null {
+  for (const date of upcomingWeekdays(at, 15, tz)) {
+    const open = availableSlots(date, takenByDate[date] || [], at, tz);
+    if (open[0]) return { date, time: open[0] };
+  }
+  return null;
+}
