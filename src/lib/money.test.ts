@@ -1,10 +1,26 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { convertViaUsd, fiatToPayme, PLANNED_TREASURY, parseAmount } from "./money";
+import {
+  circulationPlan,
+  convertViaUsd,
+  fiatToPayme,
+  PLANNED_CNY_RESERVE,
+  PLANNED_TREASURY,
+  parseAmount,
+} from "./money";
 
 describe("money", () => {
   it("plans treasury for 70 people", () => {
     assert.equal(PLANNED_TREASURY, 80500);
+    assert.equal(PLANNED_CNY_RESERVE, 805000);
+    assert.deepEqual(circulationPlan(), {
+      people: 70,
+      perPerson: 1000,
+      buffer: 0.15,
+      payme: 80500,
+      cnyPerPayme: 10,
+      cnyReserve: 805000,
+    });
   });
 
   it("converts fiat to payme via CNY peg", () => {

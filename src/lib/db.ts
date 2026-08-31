@@ -3,8 +3,22 @@ import path from "node:path";
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
-import { ADMIN_DISPLAY, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_USERNAME } from "./adminAccount";
-import { CIRCLE_SIZE, PER_PERSON_FLOAT, PLANNED_TREASURY, TREASURY_BUFFER } from "./money";
+import {
+  ADMIN_DISPLAY,
+  ADMIN_EMAIL,
+  ADMIN_FIRST_NAME,
+  ADMIN_LAST_NAME,
+  ADMIN_PASSWORD,
+  ADMIN_USERNAME,
+} from "./adminAccount";
+import {
+  CIRCLE_SIZE,
+  DEFAULT_CNY_PER_PAYME,
+  PER_PERSON_FLOAT,
+  PLANNED_CNY_RESERVE,
+  PLANNED_TREASURY,
+  TREASURY_BUFFER,
+} from "./money";
 import type {
   ChatMessage,
   Conversation,
@@ -37,6 +51,7 @@ export function getDb(): Database.Database {
   ensureAdminAccount(db);
   ensureLegalNames(db);
   ensureCashOnlyBalances(db);
+  ensureCirculationReady(db);
   ensureDefaults(db);
   ensureListingPhotos(db);
   return db;
@@ -44,8 +59,8 @@ export function getDb(): Database.Database {
 
 function ensureDefaults(database: Database.Database) {
   const ignore = database.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
-  ignore.run("cny_per_payme", "10");
-  ignore.run("cny_reserve", String(PLANNED_TREASURY * 10));
+  ignore.run("cny_per_payme", String(DEFAULT_CNY_PER_PAYME));
+  ignore.run("cny_reserve", String(PLANNED_CNY_RESERVE));
   ignore.run("planned_people", String(CIRCLE_SIZE));
   ignore.run("per_person_float", String(PER_PERSON_FLOAT));
 
@@ -216,11 +231,10 @@ function addColumn(database: Database.Database, table: string, column: string, d
 }
 
 function ensureAdminAccount(database: Database.Database) {
-  const admin = database.prepare("SELECT id, email, username FROM users WHERE role = 'admin' LIMIT 1").get() as
-    | { id: string; email: string; username: string }
+  const admin = database.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as
+    | { id: string }
     | undefined;
   if (!admin) return;
-  if (admin.email.toLowerCase() === ADMIN_EMAIL && admin.username === ADMIN_USERNAME) return;
 
   const hash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
   const taken = database
@@ -233,14 +247,29 @@ function ensureAdminAccount(database: Database.Database) {
   }
   database
     .prepare(
-      "UPDATE users SET email = ?, password_hash = ?, username = ?, display_name = ?, first_name = COALESCE(first_name, ?), last_name = COALESCE(last_name, ?) WHERE id = ?",
+      `UPDATE users SET
+        email = ?,
+        password_hash = ?,
+        username = ?,
+        display_name = ?,
+        first_name = ?,
+        last_name = ?
+       WHERE id = ?`,
     )
-    .run(ADMIN_EMAIL, hash, ADMIN_USERNAME, ADMIN_DISPLAY, "Nicholas", "Ma", admin.id);
+    .run(
+      ADMIN_EMAIL,
+      hash,
+      ADMIN_USERNAME,
+      ADMIN_DISPLAY,
+      ADMIN_FIRST_NAME,
+      ADMIN_LAST_NAME,
+      admin.id,
+    );
 }
 
 function ensureLegalNames(database: Database.Database) {
   const defaults: { username: string; first: string; last: string }[] = [
-    { username: ADMIN_USERNAME, first: "Nicholas", last: "Ma" },
+    { username: ADMIN_USERNAME, first: ADMIN_FIRST_NAME, last: ADMIN_LAST_NAME },
     { username: "luna", first: "Luna", last: "Chen" },
     { username: "kai", first: "Kai", last: "Rivera" },
     { username: "nova", first: "Nova", last: "Kim" },
@@ -315,8 +344,8 @@ function seed(database: Database.Database) {
     password_hash: bcrypt.hashSync(ADMIN_PASSWORD, 10),
     username: ADMIN_USERNAME,
     display_name: ADMIN_DISPLAY,
-    first_name: "Nicholas",
-    last_name: "Ma",
+    first_name: ADMIN_FIRST_NAME,
+    last_name: ADMIN_LAST_NAME,
     role: "admin",
     balance_payme: PLANNED_TREASURY,
     display_currency: "CNY",
@@ -367,10 +396,10 @@ function seed(database: Database.Database) {
 
   database
     .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
-    .run("cny_per_payme", "10");
+    .run("cny_per_payme", String(DEFAULT_CNY_PER_PAYME));
   database
     .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
-    .run("cny_reserve", String(PLANNED_TREASURY * 10));
+    .run("cny_reserve", String(PLANNED_CNY_RESERVE));
   database
     .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
     .run("planned_people", String(CIRCLE_SIZE));
@@ -452,6 +481,32 @@ function ensureCashOnlyBalances(database: Database.Database) {
         "INSERT INTO settings (key, value) VALUES ('cash_only_reclaim', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
       )
       .run();
+  });
+  run();
+}
+
+/** 一次性把金库对齐到待流通规划：80,500 Ᵽ + 805,000 CNY 现金准备金。 */
+function ensureCirculationReady(database: Database.Database) {
+  const done = database.prepare("SELECT value FROM settings WHERE key = ?").get("circulation_ready") as
+    | { value: string }
+    | undefined;
+  if (done?.value === "1") return;
+
+  const admin = database.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as
+    | { id: string }
+    | undefined;
+  if (!admin) return;
+
+  const upsert = database.prepare(
+    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+  );
+  const run = database.transaction(() => {
+    upsert.run("cny_per_payme", String(DEFAULT_CNY_PER_PAYME));
+    upsert.run("planned_people", String(CIRCLE_SIZE));
+    upsert.run("per_person_float", String(PER_PERSON_FLOAT));
+    upsert.run("cny_reserve", String(PLANNED_CNY_RESERVE));
+    upsert.run("circulation_ready", "1");
+    database.prepare("UPDATE users SET balance_payme = ? WHERE id = ?").run(PLANNED_TREASURY, admin.id);
   });
   run();
 }
@@ -985,16 +1040,22 @@ export function treasuryStats() {
   const users = listUsers().filter((u) => u.role !== "admin");
   const circulating = users.reduce((sum, u) => sum + u.balancePayme, 0);
   const plan = plannedTreasuryNeed();
+  const cnyPerPayme = Number(getSetting("cny_per_payme", String(DEFAULT_CNY_PER_PAYME)));
   return {
     admin,
     userCount: users.length,
     circulating,
     treasuryPayme: admin.balancePayme,
     cnyReserve: Number(getSetting("cny_reserve", "0")),
-    cnyPerPayme: Number(getSetting("cny_per_payme", "10")),
+    cnyPerPayme,
     plannedTreasury: plan.plannedTreasury,
+    plannedCnyReserve: Math.round(plan.plannedTreasury * cnyPerPayme),
     plannedPeople: plan.plannedPeople,
     perPersonFloat: plan.perPersonFloat,
+    circulationReady: getSetting("circulation_ready", "") === "1",
+    adminEmail: admin.email,
+    adminUsername: admin.username,
+    adminName: [admin.firstName, admin.lastName].filter(Boolean).join(" ").trim() || admin.displayName,
   };
 }
 

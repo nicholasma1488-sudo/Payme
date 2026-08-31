@@ -13,8 +13,13 @@ type Treasury = {
   cnyReserve: number;
   cnyPerPayme: number;
   plannedTreasury: number;
+  plannedCnyReserve: number;
   plannedPeople: number;
   perPersonFloat: number;
+  circulationReady: boolean;
+  adminEmail: string;
+  adminUsername: string | null;
+  adminName: string | null;
 };
 
 export function AdminClient({
@@ -101,16 +106,40 @@ export function AdminClient({
   return (
     <div className="space-y-4">
       <div>
-        <p className="font-mono text-xs text-gold">TREASURY</p>
+        <p className="font-mono text-xs text-gold">TREASURY · READY</p>
         <h1 className="mt-1 text-2xl font-semibold">金库</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           {treasury.plannedPeople} 人 × {treasury.perPersonFloat} Ᵽ × 1.15 ={" "}
-          {treasury.plannedTreasury.toLocaleString("zh-CN")} Ᵽ。覆盖 {coverage}%。
+          {treasury.plannedTreasury.toLocaleString("zh-CN")} Ᵽ 待流通。对应现金准备金{" "}
+          {treasury.plannedCnyReserve.toLocaleString("zh-CN")} CNY。覆盖 {coverage}%。
+          {treasury.circulationReady ? " 流动性已预备。" : ""}
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Stat label="金库 Pay Me" value={formatPayme(treasury.treasuryPayme)} />
+      <section className="panel p-5">
+        <h2 className="font-mono text-sm">Admin 账户</h2>
+        <p className="mt-2 text-sm text-muted">
+          当面收现金后从金库拨出 Ᵽ。登录邮箱与密码已对齐。
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div>
+            <div className="font-mono text-[11px] text-muted">真名</div>
+            <div className="mt-1 text-ink">{treasury.adminName || "—"}</div>
+          </div>
+          <div>
+            <div className="font-mono text-[11px] text-muted">用户名</div>
+            <div className="mt-1 font-mono text-gold">@{treasury.adminUsername || "admin"}</div>
+          </div>
+          <div>
+            <div className="font-mono text-[11px] text-muted">邮箱</div>
+            <div className="mt-1 font-mono text-sm text-ink">{treasury.adminEmail}</div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <Stat label="待流通 Ᵽ" value={formatPayme(treasury.treasuryPayme)} />
+        <Stat label="已流通" value={formatPayme(treasury.circulating)} />
         <Stat label="CNY 准备金" value={`${treasury.cnyReserve.toLocaleString("zh-CN")} CNY`} />
         <Stat label="已注册朋友" value={`${treasury.userCount} / ${treasury.plannedPeople}`} />
       </div>
@@ -154,7 +183,9 @@ export function AdminClient({
         <button onClick={save} className="btn mt-4 px-4 py-2 text-sm">
           保存
         </button>
-        <p className="mt-3 text-xs text-muted">流通 {formatPayme(treasury.circulating)}</p>
+        <p className="mt-3 text-xs text-muted">
+          待流通 {formatPayme(treasury.treasuryPayme)} · 已流通 {formatPayme(treasury.circulating)}
+        </p>
       </section>
 
       <section className="panel p-5">

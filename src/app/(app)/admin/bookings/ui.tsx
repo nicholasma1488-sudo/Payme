@@ -22,7 +22,12 @@ export function BookingsAdmin({
   bookings: ExchangeBooking[];
   takenByDate: Record<string, string[]>;
   counts: { date: string; people: number; pending: number }[];
-  treasury: { treasuryPayme: number; circulating: number; plannedTreasury: number };
+  treasury: {
+    treasuryPayme: number;
+    circulating: number;
+    plannedTreasury: number;
+    cnyReserve: number;
+  };
 }) {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -101,8 +106,9 @@ export function BookingsAdmin({
         <p className="font-mono text-xs text-gold">BOOKINGS · @admin</p>
         <h1 className="mt-1 text-2xl font-semibold">兑换预约</h1>
         <p className="mt-2 text-sm text-muted">
-          只收当面现金。工作日 15:30 截止。点开人名即可问见面地点。金库{" "}
-          {formatPayme(treasury.treasuryPayme)} / 规划 {formatPayme(treasury.plannedTreasury)}。
+          只收当面现金。工作日 15:30 截止。点开人名即可问见面地点。待流通{" "}
+          {formatPayme(treasury.treasuryPayme)} / 规划 {formatPayme(treasury.plannedTreasury)}
+          ，准备金 {treasury.cnyReserve.toLocaleString("zh-CN")} CNY。
         </p>
       </div>
 

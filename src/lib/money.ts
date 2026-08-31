@@ -86,9 +86,23 @@ export function paymeToFiat(
 export const CIRCLE_SIZE = 70;
 export const PER_PERSON_FLOAT = 1000;
 export const TREASURY_BUFFER = 0.15;
+export const DEFAULT_CNY_PER_PAYME = 10;
 export const PLANNED_TREASURY = Math.round(
   CIRCLE_SIZE * PER_PERSON_FLOAT * (1 + TREASURY_BUFFER),
 );
+/** 待流通 Ᵽ 对应的现金准备金：80,500 × 10 = 805,000 CNY。 */
+export const PLANNED_CNY_RESERVE = PLANNED_TREASURY * DEFAULT_CNY_PER_PAYME;
+
+export function circulationPlan() {
+  return {
+    people: CIRCLE_SIZE,
+    perPerson: PER_PERSON_FLOAT,
+    buffer: TREASURY_BUFFER,
+    payme: PLANNED_TREASURY,
+    cnyPerPayme: DEFAULT_CNY_PER_PAYME,
+    cnyReserve: PLANNED_CNY_RESERVE,
+  };
+}
 
 export function parseAmount(raw: string): number | null {
   const cleaned = raw.replace(/,/g, "").replace(/^\$/, "");
