@@ -36,6 +36,7 @@ export function getDb(): Database.Database {
   seed(db);
   ensureAdminAccount(db);
   ensureLegalNames(db);
+  ensureCashOnlyBalances(db);
   ensureDefaults(db);
   ensureListingPhotos(db);
   return db;
@@ -302,7 +303,7 @@ function seed(database: Database.Database) {
     first_name: "Luna",
     last_name: "Chen",
     role: "user",
-    balance_payme: 420,
+    balance_payme: 0,
     display_currency: "CNY",
     created_at: now,
   });
@@ -316,7 +317,7 @@ function seed(database: Database.Database) {
     first_name: "Kai",
     last_name: "Rivera",
     role: "user",
-    balance_payme: 880,
+    balance_payme: 0,
     display_currency: "USD",
     created_at: now,
   });
@@ -330,7 +331,7 @@ function seed(database: Database.Database) {
     first_name: "Nova",
     last_name: "Kim",
     role: "user",
-    balance_payme: 260,
+    balance_payme: 0,
     display_currency: "CNY",
     created_at: now,
   });
@@ -380,23 +381,50 @@ function seed(database: Database.Database) {
     now,
   );
   ensureListingPhotos(database);
+}
 
-  const tx = database.prepare(`
-    INSERT INTO transactions (id, from_user_id, to_user_id, amount_payme, type, note, fiat_amount, fiat_currency, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  tx.run(crypto.randomUUID(), kaiId, lunaId, 18, "pay", "上周咖啡", null, null, now - 3600_000);
-  tx.run(
-    crypto.randomUUID(),
-    adminId,
-    kaiId,
-    200,
-    "exchange_in",
-    "兑入 Pay Me",
-    2000,
-    "CNY",
-    now - 86400_000,
-  );
+function ensureCashOnlyBalances(database: Database.Database) {
+  const done = database.prepare("SELECT value FROM settings WHERE key = ?").get("cash_only_reclaim") as
+    | { value: string }
+    | undefined;
+  if (done?.value === "1") return;
+
+  const admin = database.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as
+    | { id: string }
+    | undefined;
+  if (!admin) return;
+
+  const holders = database
+    .prepare("SELECT id, username, balance_payme FROM users WHERE role != 'admin' AND balance_payme > 1e-9")
+    .all() as { id: string; username: string | null; balance_payme: number }[];
+
+  const run = database.transaction(() => {
+    const insertTx = database.prepare(`
+      INSERT INTO transactions (id, from_user_id, to_user_id, amount_payme, type, note, fiat_amount, fiat_currency, created_at)
+      VALUES (?, ?, ?, ?, 'adjust', ?, NULL, NULL, ?)
+    `);
+    const now = Date.now();
+    for (const holder of holders) {
+      const amount = Number(holder.balance_payme);
+      if (amount <= 0) continue;
+      database.prepare("UPDATE users SET balance_payme = balance_payme - ? WHERE id = ?").run(amount, holder.id);
+      database.prepare("UPDATE users SET balance_payme = balance_payme + ? WHERE id = ?").run(amount, admin.id);
+      insertTx.run(
+        crypto.randomUUID(),
+        holder.id,
+        admin.id,
+        amount,
+        `现金制度：未当面兑换的余额已收回 @${holder.username || "user"}`,
+        now,
+      );
+    }
+    database
+      .prepare(
+        "INSERT INTO settings (key, value) VALUES ('cash_only_reclaim', '1') ON CONFLICT(key) DO UPDATE SET value = '1'",
+      )
+      .run();
+  });
+  run();
 }
 
 export function getSetting(key: string, fallback = ""): string {

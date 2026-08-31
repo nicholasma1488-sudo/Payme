@@ -71,6 +71,7 @@ export function HomeClient({
         <p className="font-mono text-xs text-muted">@{username} · SPOT</p>
         <h1 className="mt-2 font-mono text-4xl text-moss">{balanceLabel}</h1>
         <p className="mt-1 font-mono text-sm text-muted">≈ {fiatLabel}</p>
+        <p className="mt-2 text-xs text-muted">余额只来自当面现金。admin 收到现金并入账后才会到账。</p>
         <div className="mt-5 grid gap-2 font-mono text-xs text-muted md:grid-cols-3">
           <div className="border border-line bg-bg p-3">
             转账

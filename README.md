@@ -22,7 +22,7 @@ npm run dev
 | 朋友 | kai@payme.app | friends123 | kai |
 | 朋友 | nova@payme.app | friends123 | nova |
 
-新用户：用任意邮箱注册，再选一个用户名，别人就能 `/pay` 给你。
+新用户和演示朋友余额都是 0。只有 admin 当面收到现金后入账，账户才会有 Ᵽ。
 
 ## 命令栏
 
