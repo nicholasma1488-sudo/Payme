@@ -14,6 +14,7 @@ type Quote = {
   fiat?: number;
   cny: number;
   officialCny: number;
+  marketCny: number;
   offset: number;
   clamped: boolean;
   maxOffset: number;
@@ -119,8 +120,8 @@ export default function ExchangePage() {
                 <p>
                   {quote.inputAmount} {currency} 现金 → <span className="text-moss">{quote.payme} Ᵽ</span>
                   <span className="mt-1 block text-[11px] text-muted">
-                    流动市场 {quote.cny} CNY · 人民币兑换 {quote.officialCny} CNY · 偏差{" "}
-                    {quote.offset} / {quote.maxOffset} 元
+                    流动市场 {quote.marketCny} CNY · 人民币兑换 {quote.officialCny} CNY · 入账{" "}
+                    {quote.cny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
                     {quote.clamped ? " · 已夹紧" : ""} · 1 Ᵽ = {quote.cnyPerPayme} CNY
                   </span>
                 </p>
@@ -131,7 +132,8 @@ export default function ExchangePage() {
                     {quote.fiat} {currency} 现金
                   </span>
                   <span className="mt-1 block text-[11px] text-muted">
-                    人民币兑换 {quote.officialCny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
+                    流动市场 {quote.marketCny} CNY · 人民币兑换 {quote.officialCny} CNY · 入账{" "}
+                    {quote.cny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
                     {quote.clamped ? " · 已夹紧" : ""}
                   </span>
                 </p>

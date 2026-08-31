@@ -13,6 +13,7 @@ type Quote = {
   fiat?: number;
   cny: number;
   officialCny: number;
+  marketCny: number;
   offset: number;
   clamped: boolean;
   maxOffset: number;
@@ -200,8 +201,8 @@ export function BookClient() {
             <div className="border border-line bg-bg p-3 font-mono text-xs text-muted">
               {side === "buy" ? (
                 <span>
-                  流动市场入账 <span className="text-moss">{quote.payme} Ᵽ</span> · 人民币兑换{" "}
-                  {quote.officialCny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
+                  入账 <span className="text-moss">{quote.payme} Ᵽ</span> · 流动市场 {quote.marketCny}{" "}
+                  CNY · 人民币兑换 {quote.officialCny} CNY · 偏差 {quote.offset} / {quote.maxOffset} 元
                   {quote.clamped ? " · 已夹紧" : ""}
                 </span>
               ) : (

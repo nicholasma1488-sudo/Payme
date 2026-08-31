@@ -17,7 +17,15 @@ export default async function AdminBookingsPage({
   const bookings = listBookings(date);
   const quotes: Record<
     string,
-    { payme: number; cny: number; officialCny: number; offset: number; clamped: boolean; maxOffset: number }
+    {
+      payme: number;
+      cny: number;
+      officialCny: number;
+      marketCny: number;
+      offset: number;
+      clamped: boolean;
+      maxOffset: number;
+    }
   > = {};
   for (const booking of bookings) {
     try {

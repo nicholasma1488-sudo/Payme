@@ -12,6 +12,7 @@ type MarketQuote = {
   payme: number;
   cny: number;
   officialCny: number;
+  marketCny: number;
   offset: number;
   clamped: boolean;
   maxOffset: number;
@@ -192,8 +193,8 @@ export function BookingsAdmin({
                 </div>
                 {q && b.status === "pending" && (
                   <div className="mt-1 font-mono text-[11px] text-moss">
-                    完成时自动入账 {q.payme} Ᵽ · 人民币 {q.officialCny} CNY · 偏差 {q.offset}/
-                    {q.maxOffset}
+                    完成时自动入账 {q.payme} Ᵽ · 流动市场 {q.marketCny} CNY · 人民币 {q.officialCny}{" "}
+                    CNY · 偏差 {q.offset}/{q.maxOffset}
                     {q.clamped ? " · 已夹紧" : ""}
                   </div>
                 )}
